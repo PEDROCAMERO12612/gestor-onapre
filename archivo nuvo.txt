@@ -1,133 +1,17 @@
-import io
-import pandas as pd
-import streamlit as st
-
-# Configuración inicial de la página web
-st.set_page_config(
-    page_title="Asistente ONAPRE Instructivo N° 06", page_icon="📊", layout="wide"
-)
-
-st.title("📊 Asistente de Ejecución Físico-Financiera (Instructivo N° 06)")
-st.markdown(
-    "Herramienta simplificada para la carga, validación y cálculo automático"
-    " de informes mensuales para la ONAPRE."
-)
-
-# Inicializar memoria de sesión para que las obras no se borren al navegar entre pestañas
-if "obras" not in st.session_state:
-  st.session_state.obras = []
-
-# Pestañas principales de la aplicación
-tab1, tab2, tab3 = st.tabs(
-    [
-        "⚙️ Parámetros del Órgano",
-        "🏗️ Formulario 0601 (Obras)",
-        "📑 Resumen y Consolidado",
-    ]
-)
-
-# --- PESTAÑA 1: PARÁMETROS DEL ÓRGANO ---
-with tab1:
-  st.subheader("Parámetros del Órgano")
-
-  col1, col2 = st.columns(2)
-  with col1:
-    codigo_presupuestario = st.text_input(
-        "Código Presupuestario", value="00150"
-    )
-    mes_reporte = st.selectbox(
-        "Mes de Reporte",
-        [
-            "Enero",
-            "Febrero",
-            "Marzo",
-            "Abril",
-            "Mayo",
-            "Junio",
-            "Julio",
-            "Agosto",
-            "Septiembre",
-            "Octubre",
-            "Noviembre",
-            "Diciembre",
-        ],
-        index=0,  # Enero por defecto
-    )
-  with col2:
-    denominacion_organo = st.text_input(
-        "Denominación del Órgano / Ente Ejecutor",
-        value="Ministerio / Ente Ejecutor",
-    )
-    anio_fiscal = st.number_input(
-        "Año Fiscal", min_value=2024, max_value=2030, value=2026
-    )
-
-  if st.button("Guardar Parámetros"):
-    st.success(
-        f"Parámetros actualizados para: {denominacion_organo} ({mes_reporte}"
-        f" {anio_fiscal})"
-    )
-
-# --- PESTAÑA 2: FORMULARIO 0601 (OBRAS) ---
-with tab2:
-  st.subheader("Registro de Ejecución Financiera de Obras")
-  st.markdown(
-      "Ingrese los datos de la obra y haga clic en 'Agregar Obra al Reporte'."
-  )
-
-  with st.form("form_obra", clear_on_submit=True):
-    col_a, col_b = st.columns(2)
-    with col_a:
-      accion_especifica = st.text_input(
-          "Acción Específica", placeholder="Ej. 01"
-      )
-      monto_programado = st.number_input(
-          "Monto Programado del Mes (V1)", min_value=0.0, format="%.2f"
-      )
-    with col_b:
-      denominacion_obra = st.text_input(
-          "Denominación de la Obra", placeholder="Nombre de la obra..."
-      )
-      monto_causado = st.number_input(
-          "Monto Causado / Ejecutado del Mes (V2)",
-          min_value=0.0,
-          format="%.2f",
-      )
-
-    submitted = st.form_submit_button("Agregar Obra al Reporte")
-    if submitted:
-      if denominacion_obra and accion_especifica:
-        diferencia = (
-            monto_programado - monto_causado
-        )  # Cálculo automático de variación
-        # Guardar registro en la memoria temporal de Streamlit
-        st.session_state.obras.append({
-            "Acción Específica": accion_especifica,
-            "Denominación de la Obra": denominacion_obra,
-            "Programado Mes (V1)": monto_programado,
-            "Causado Mes (V2)": monto_causado,
-            "Diferencia": diferencia,
-        })
-        st.success(f"¡Obra '{denominacion_obra}' agregada con éxito!")
-      else:
-        st.warning(
-            "Por favor, complete al menos la Acción Específica y la"
-            " Denominación de la Obra."
-        )
-
-# --- PESTAÑA 3: RESUMEN Y CONSOLIDADO ---
 with tab3:
-  st.subheader("Resumen Consolidado y Descarga")
+  st.subheader(
+      f"Resumen y Consolidado para la ONAPRE ({mes_reporte} {anio_fiscal})"
+  )
 
   if len(st.session_state.obras) > 0:
     # Mostrar tabla interactiva en pantalla
     df_obras = pd.DataFrame(st.session_state.obras)
     st.dataframe(df_obras, use_container_width=True)
 
-    # Botón para vaciar la lista si deseas reiniciar
-    if st.button("🗑️ Limpiar Registros"):
-      st.session_state.obras = []
-      st.rerun()
+    st.markdown("### 📋 Justificación de Desviaciones")
+    justificacion = st.text_area(
+        "Redacte aquí las causas de las variaciones:"
+    )
 
     # Generar archivo Excel real (.xlsx) estructurado en columnas
     output = io.BytesIO()
@@ -135,17 +19,23 @@ with tab3:
       df_obras.to_excel(writer, index=False, sheet_name="Consolidado_Obras")
     excel_data = output.getvalue()
 
-    # Botón de descarga directa
+    # Botón oficial de descarga de Streamlit (este sí descarga el archivo)
     st.download_button(
-        label="📥 Generar Consolidado Descargable (Excel)",
+        label="📥 Generar Consolidado Descargable",
         data=excel_data,
         file_name=f"Consolidado_ONAPRE_{mes_reporte}_{anio_fiscal}.xlsx",
         mime=(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ),
     )
+
+    # Botón opcional para limpiar registros si deseas empezar de nuevo
+    if st.button("🗑️ Limpiar Registros"):
+      st.session_state.obras = []
+      st.rerun()
   else:
     st.info(
         "Aún no hay obras cargadas. Vaya a la pestaña 'Formulario 0601 (Obras)'"
         " para comenzar el registro del mes."
     )
+Pasos siguientes:
