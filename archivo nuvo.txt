@@ -1,3 +1,4 @@
+# --- PESTAÑA 3: RESUMEN Y CONSOLIDADO ---
 with tab3:
   st.subheader(
       f"Resumen y Consolidado para la ONAPRE ({mes_reporte} {anio_fiscal})"
@@ -10,31 +11,76 @@ with tab3:
 
     st.markdown("### 📋 Justificación de Desviaciones")
     justificacion = st.text_area(
-        "Redacte aquí las causas de las variaciones:"
+        "Redacte aquí las causas de las variaciones:",
+        value=(
+            st.session_state.get("justificacion_texto", "")
+        ),
     )
+    st.session_state["justificacion_texto"] = justificacion
 
-    # Generar archivo Excel real (.xlsx) estructurado en columnas
+    # Generar archivo Excel estructurado bajo el formato oficial Instructivo N° 06
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-      df_obras.to_excel(writer, index=False, sheet_name="Consolidado_Obras")
+      # Crear un DataFrame limpio con la estructura formal del instructivo
+      df_export = df_obras.copy()
+      df_export.columns = [
+          "Acción Específica",
+          "Denominación de la Obra / Proyecto",
+          "Programado Mes (V1)",
+          "Causado Mes (V2)",
+          "Variación / Diferencia",
+      ]
+
+      # Escribir los datos institucionales y de la tabla en el Excel
+      df_export.to_excel(
+          writer, sheet_name="Instructivo_06", index=False, startrow=6
+      )
+
+      # Obtener el libro y la hoja activa para aplicar diseño institucional
+      workbook = writer.book
+      sheet = writer.sheets["Instructivo_06"]
+
+      # Encabezados institucionales oficiales ONAPRE
+      sheet["A1"] = "REPÚBLICA BOLIVARIANA DE VENEZUELA"
+      sheet["A2"] = "MINISTERIO DEL PODER POPULAR PARA LA DEFENSA"
+      sheet["A3"] = (
+          "EJÉRCITO BOLIVARIANO — OFICINA DE PLANIFICACIÓN Y PRESUPUESTO"
+      )
+      sheet["A4"] = (
+          f"INFORME DE EJECUCIÓN FÍSICO-FINANCIERA (INSTRUCTIVO N° 06) -"
+          f" PERÍODO: {mes_reporte.upper()} {anio_fiscal}"
+      )
+      sheet["A5"] = (
+          f"ÓRGANO / ENTE: {denominacion_organo} | CÓDIGO: {codigo_presupuestario}"
+      )
+
+      # Sección de justificación al pie del reporte
+      fila_pie = len(df_export) + 9
+      sheet.cell(
+          row=fila_pie, column=1, value="JUSTIFICACIÓN DE LAS DESVIACIONES:"
+      )
+      sheet.cell(row=fila_pie + 1, column=1, value=justificacion)
+
     excel_data = output.getvalue()
 
-    # Botón oficial de descarga de Streamlit (este sí descarga el archivo)
+    # Botón oficial de descarga del formato formal
     st.download_button(
-        label="📥 Generar Consolidado Descargable",
+        label="📥 Descargar Consolidado Oficial (Instructivo N° 06)",
         data=excel_data,
-        file_name=f"Consolidado_ONAPRE_{mes_reporte}_{anio_fiscal}.xlsx",
+        file_name=(
+            f"Instructivo_06_ONAPRE_{denominacion_organo}_{mes_reporte}_{anio_fiscal}.xlsx"
+        ),
         mime=(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ),
     )
 
-    # Botón opcional para limpiar registros si deseas empezar de nuevo
     if st.button("🗑️ Limpiar Registros"):
       st.session_state.obras = []
+      st.session_state["justificacion_texto"] = ""
       st.rerun()
   else:
     st.info(
-        "Aún no hay obras cargadas. Vaya a la pestaña 'Formulario 0601 (Obras)'"
-        " para comenzar el registro del mes."
+        "Aún no hay obras cargadas. Vaya a la pestaña 'Formulario 0601"
+        " (Obras)' para comenzar el registro del mes."
     )
