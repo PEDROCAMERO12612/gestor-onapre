@@ -1,196 +1,189 @@
+import io
 import pandas as pd
 import streamlit as st
 
-# Configuración de la página
+# Configuración inicial de la página web
 st.set_page_config(
-    page_title="Gestor ONAPRE - Instructivo N° 06",
-    page_icon="📊",
-    layout="wide",
+    page_title="Asistente ONAPRE Instructivo N° 06", page_icon="📊", layout="wide"
 )
 
-# Título principal
 st.title("📊 Asistente de Ejecución Físico-Financiera (Instructivo N° 06)")
 st.markdown(
-    "Herramienta simplificada para la carga, validación y cálculo automático de"
-    " reportes mensuales para la ONAPRE."
+    "Herramienta simplificada para la carga, validación y cálculo automático"
+    " de informes mensuales para la ONAPRE."
 )
 
-# MÓDULO 1: Configuración Institucional
-st.sidebar.header("1. Parámetros del Órgano")
-codigo_organo = st.sidebar.text_input("Código Presupuestario", "00150")
-denominacion_organo = st.sidebar.text_input(
-    "Denominación del Órgano", "Ministerio / Ente Ejecutor"
-)
-mes_reporte = st.sidebar.selectbox(
-    "Mes de Reporte",
-    [
-        "Enero",
-        "Febrero",
-        "Marzo",
-        "Abril",
-        "Mayo",
-        "Junio",
-        "Julio",
-        "Agosto",
-        "Septiembre",
-        "Octubre",
-        "Noviembre",
-        "Diciembre",
-    ],
-)
-anio_reporte = st.sidebar.number_input("Año Fiscal", value=2026, step=1)
+# Inicializar memoria de sesión para que las obras no se borren
+if "obras" not in st.session_state:
+  st.session_state.obras = []
 
-# Pestañas principales de navegación
-tab1, tab2, tab3, tab4 = st.tabs(
+# Pestañas principales de la aplicación
+tab1, tab2, tab3 = st.tabs(
     [
+        "⚙️ Parámetros del Órgano",
         "🏗️ Formulario 0601 (Obras)",
-        "💰 Formulario 0602 (Financiero)",
-        "📈 Formulario 0603 (Físico)",
         "📑 Resumen y Consolidado",
     ]
 )
 
-# Inicializar estados en memoria
-if "obras_data" not in st.session_state:
-  st.session_state.obras_data = pd.DataFrame(
-      columns=[
-          "Acción Específica",
-          "Nombre de la Obra",
-          "Prog_Mes",
-          "Ejec_Comprometido",
-          "Ejec_Causado",
-      ]
-  )
-
-if "financiero_data" not in st.session_state:
-  st.session_state.financiero_data = pd.DataFrame(
-      columns=[
-          "Proyecto/Acción",
-          "Partida",
-          "Programado_Mes",
-          "Comprometido_Mes",
-          "Causado_Mes",
-      ]
-  )
-
-# MÓDULO 2: Formulario 0601 (Obras)
+# --- PESTAÑA 1: PARÁMETROS DEL ÓRGANO ---
 with tab1:
+  st.subheader("Parámetros del Órgano")
+
+  col1, col2 = st.columns(2)
+  with col1:
+    codigo_presupuestario = st.text_input(
+        "Código Presupuestario", value="29884"
+    )
+    mes_reporte = st.selectbox(
+        "Mes de Reporte",
+        [
+            "Enero",
+            "Febrero",
+            "Marzo",
+            "Abril",
+            "Mayo",
+            "Junio",
+            "Julio",
+            "Agosto",
+            "Septiembre",
+            "Octubre",
+            "Noviembre",
+            "Diciembre",
+        ],
+        index=0,
+    )
+  with col2:
+    denominacion_organo = st.text_input(
+        "Denominación del Órgano / Ente Ejecutor",
+        value="MINISTERIO BRIGADA DE CARIBES",
+    )
+    anio_fiscal = st.number_input(
+        "Año Fiscal", min_value=2024, max_value=2030, value=2026
+    )
+
+  if st.button("Guardar Parámetros"):
+    st.success(
+        f"Parámetros actualizados para: {denominacion_organo} ({mes_reporte}"
+        f" {anio_fiscal})"
+    )
+
+# --- PESTAÑA 2: FORMULARIO 0601 (OBRAS) ---
+with tab2:
   st.subheader("Registro de Ejecución Financiera de Obras")
-  with st.form("form_obra"):
-    col1, col2 = st.columns(2)
-    with col1:
-      accion_esp = st.text_input("Acción Específica", placeholder="Ej. 01")
-      nombre_obra = st.text_input("Denominación de la Obra")
-    with col2:
-      prog_mes = st.number_input(
+  st.markdown(
+      "Ingrese los datos de la obra y haga clic en 'Agregar Obra al Reporte'."
+  )
+
+  with st.form("form_obra", clear_on_submit=True):
+    col_a, col_b = st.columns(2)
+    with col_a:
+      accion_especifica = st.text_input(
+          "Acción Específica", placeholder="Ej. 01"
+      )
+      monto_programado = st.number_input(
           "Monto Programado del Mes (V1)", min_value=0.0, format="%.2f"
       )
-      ejec_causado = st.number_input(
+    with col_b:
+      denominacion_obra = st.text_input(
+          "Denominación de la Obra", placeholder="Nombre de la obra..."
+      )
+      monto_causado = st.number_input(
           "Monto Causado / Ejecutado del Mes (V2)",
           min_value=0.0,
           format="%.2f",
       )
 
-    submitted_obra = st.form_submit_button("Agregar Obra al Reporte")
-    if submitted_obra and nombre_obra:
-      nueva_fila = pd.DataFrame(
-          [[accion_esp, nombre_obra, prog_mes, 0.0, ejec_causado]],
-          columns=[
-              "Acción Específica",
-              "Nombre de la Obra",
-              "Prog_Mes",
-              "Ejec_Comprometido",
-              "Ejec_Causado",
-          ],
-      )
-      st.session_state.obras_data = pd.concat(
-          [st.session_state.obras_data, nueva_fila], ignore_index=True
-      )
-      st.success("¡Obra agregada con éxito!")
+    submitted = st.form_submit_button("Agregar Obra al Reporte")
+    if submitted:
+      if denominacion_obra and accion_especifica:
+        diferencia = monto_programado - monto_causado
+        st.session_state.obras.append({
+            "Acción Específica": accion_especifica,
+            "Denominación de la Obra": denominacion_obra,
+            "Programado Mes (V1)": monto_programado,
+            "Causado Mes (V2)": monto_causado,
+            "Diferencia": diferencia,
+        })
+        st.success(f"¡Obra '{denominacion_obra}' agregada con éxito!")
+      else:
+        st.warning(
+            "Por favor, complete al menos la Acción Específica y la"
+            " Denominación de la Obra."
+        )
 
-  if not st.session_state.obras_data.empty:
-    st.markdown("### Listado de Obras Cargadas")
-    df_temp = st.session_state.obras_data.copy()
-    df_temp["Variación Absoluta (VA)"] = (
-        df_temp["Ejec_Causado"] - df_temp["Prog_Mes"]
-    )
-    df_temp["Variación Relativa (%)"] = (
-        df_temp["Variación Absoluta (VA)"] / df_temp["Prog_Mes"].replace(0, 1)
-    ) * 100
-    st.dataframe(df_temp, use_container_width=True)
-
-# MÓDULO 3: Formulario 0602 (Ejecución Financiera por Partidas)
-with tab2:
-  st.subheader("Ejecución Financiera por Partidas Presupuestarias")
-  with st.form("form_financiero"):
-    c1, c2, c3 = st.columns(3)
-    with c1:
-      proy_accion = st.text_input("Proyecto o Acción Centralizada")
-    with c2:
-      partida = st.text_input("Partida Presupuestaria", placeholder="Ej. 4.01")
-    with c3:
-      prog_fin = st.number_input(
-          "Programado Financiero", min_value=0.0, format="%.2f"
-      )
-
-    c4, c5 = st.columns(2)
-    with c4:
-      comp_fin = st.number_input("Comprometido Mes", min_value=0.0, format="%.2f")
-    with c5:
-      caus_fin = st.number_input("Causado Mes", min_value=0.0, format="%.2f")
-
-    submitted_fin = st.form_submit_button("Guardar Partida")
-    if submitted_fin and partida:
-      nueva_fin = pd.DataFrame(
-          [[proy_accion, partida, prog_fin, comp_fin, caus_fin]],
-          columns=[
-              "Proyecto/Acción",
-              "Partida",
-              "Programado_Mes",
-              "Comprometido_Mes",
-              "Causado_Mes",
-          ],
-      )
-      st.session_state.financiero_data = pd.concat(
-          [st.session_state.financiero_data, nueva_fin], ignore_index=True
-      )
-      st.success("¡Partida registrada con éxito!")
-
-  if not st.session_state.financiero_data.empty:
-    st.markdown("### Consolidado Financiero del Mes")
-    df_f_temp = st.session_state.financiero_data.copy()
-    df_f_temp["Diferencia (Prog - Causado)"] = (
-        df_f_temp["Programado_Mes"] - df_f_temp["Causado_Mes"]
-    )
-    st.dataframe(df_f_temp, use_container_width=True)
-
-# MÓDULO 4: Formulario 0603 & Resumen Consolidado
+# --- PESTAÑA 3: RESUMEN Y CONSOLIDADO ---
 with tab3:
-  st.subheader("Ejecución Física de Metas")
-  meta_nombre = st.text_input("Descripción de la Meta Física")
-  unidad_medida = st.text_input("Unidad de Medida")
-  col_m1, col_m2 = st.columns(2)
-  with col_m1:
-    meta_prog = st.number_input("Cantidad Programada (Mes)", min_value=0.0)
-  with col_m2:
-    meta_ejec = st.number_input("Cantidad Ejecutada (Mes)", min_value=0.0)
+  st.subheader(
+      f"Resumen y Consolidado para la ONAPRE ({mes_reporte} {anio_fiscal})"
+  )
 
-  if meta_prog > 0:
-    eficacia = (meta_ejec / meta_prog) * 100
-    st.metric(
-        label="Índice de Eficacia Física del Periodo", value=f"{eficacia:.2f}%"
+  if len(st.session_state.obras) > 0:
+    df_obras = pd.DataFrame(st.session_state.obras)
+    st.dataframe(df_obras, use_container_width=True)
+
+    st.markdown("### 📋 Justificación de Desviaciones")
+    justificacion = st.text_area(
+        "Redacte aquí las causas de las variaciones:",
+        value=st.session_state.get("justificacion_texto", ""),
+    )
+    st.session_state["justificacion_texto"] = justificacion
+
+    # Generar archivo Excel estructurado bajo el formato oficial Instructivo N° 06
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+      df_export = df_obras.copy()
+      df_export.columns = [
+          "Acción Específica",
+          "Denominación de la Obra / Proyecto",
+          "Programado Mes (V1)",
+          "Causado Mes (V2)",
+          "Variación / Diferencia",
+      ]
+      df_export.to_excel(
+          writer, sheet_name="Instructivo_06", index=False, startrow=6
+      )
+
+      sheet = writer.sheets["Instructivo_06"]
+      sheet["A1"] = "REPÚBLICA BOLIVARIANA DE VENEZUELA"
+      sheet["A2"] = "MINISTERIO DEL PODER POPULAR PARA LA DEFENSA"
+      sheet["A3"] = (
+          "EJÉRCITO BOLIVARIANO — OFICINA DE PLANIFICACIÓN Y PRESUPUESTO"
+      )
+      sheet["A4"] = (
+          f"INFORME DE EJECUCIÓN FÍSICO-FINANCIERA (INSTRUCTIVO N° 06) -"
+          f" PERÍODO: {mes_reporte.upper()} {anio_fiscal}"
+      )
+      sheet["A5"] = (
+          f"ÓRGANO / ENTE: {denominacion_organo} | CÓDIGO: {codigo_presupuestario}"
+      )
+
+      fila_pie = len(df_export) + 9
+      sheet.cell(
+          row=fila_pie, column=1, value="JUSTIFICACIÓN DE LAS DESVIACIONES:"
+      )
+      sheet.cell(row=fila_pie + 1, column=1, value=justificacion)
+
+    excel_data = output.getvalue()
+
+    # Botón OFICIAL de descarga directa a la computadora
+    st.download_button(
+        label="📥 Descargar Consolidado Oficial (Instructivo N° 06)",
+        data=excel_data,
+        file_name=(
+            f"Instructivo_06_ONAPRE_{denominacion_organo}_{mes_reporte}_{anio_fiscal}.xlsx"
+        ),
+        mime=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
     )
 
-with tab4:
-  st.subheader("Resumen y Consolidado para la ONAPRE")
-  st.info(
-      f"Órgano: **{denominacion_organo}** (Código: {codigo_organo}) | Periodo:"
-      f" **{mes_reporte} {anio_reporte}**"
-  )
-  st.markdown("### 📋 Justificación de Desviaciones")
-  st.text_area(
-      "Redacte aquí las causas de las variaciones:", placeholder="Explique..."
-  )
-
-  if st.button("📥 Generar Consolidado Descargable"):
-    st.success("¡Datos consolidados correctamente!")
+    if st.button("🗑️ Limpiar Registros"):
+      st.session_state.obras = []
+      st.session_state["justificacion_texto"] = ""
+      st.rerun()
+  else:
+    st.info(
+        "Aún no hay obras cargadas. Vaya a la pestaña 'Formulario 0601"
+        " (Obras)' para comenzar el registro del mes."
+    )
