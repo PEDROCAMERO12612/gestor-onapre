@@ -38,4 +38,3 @@ with tab3:
         "Aún no hay obras cargadas. Vaya a la pestaña 'Formulario 0601 (Obras)'"
         " para comenzar el registro del mes."
     )
-Pasos siguientes:
