@@ -13,7 +13,7 @@ st.markdown(
     " de informes mensuales para la ONAPRE."
 )
 
-# Inicializar memoria de sesión para que las obras no se borren
+# Inicializar memoria de sesión para las obras y campos
 if "obras" not in st.session_state:
   st.session_state.obras = []
 
@@ -33,7 +33,7 @@ with tab1:
   col1, col2 = st.columns(2)
   with col1:
     codigo_presupuestario = st.text_input(
-        "Código Presupuestario", value="29884"
+        "Código Presupuestario", value="29884", key="input_cod"
     )
     mes_reporte = st.selectbox(
         "Mes de Reporte",
@@ -51,66 +51,81 @@ with tab1:
             "Noviembre",
             "Diciembre",
         ],
-        index=0,
+        index=7,
+        key="input_mes",
     )
   with col2:
     denominacion_organo = st.text_input(
         "Denominación del Órgano / Ente Ejecutor",
         value="MINISTERIO BRIGADA DE CARIBES",
+        key="input_den",
     )
     anio_fiscal = st.number_input(
-        "Año Fiscal", min_value=2024, max_value=2030, value=2026
+        "Año Fiscal",
+        min_value=2024,
+        max_value=2030,
+        value=2026,
+        key="input_anio",
     )
 
-  if st.button("Guardar Parámetros"):
-    st.success(
-        f"Parámetros actualizados para: {denominacion_organo} ({mes_reporte}"
-        f" {anio_fiscal})"
-    )
+  st.success(
+      f"Parámetros configurados para: {denominacion_organo} ({mes_reporte}"
+      f" {anio_fiscal})"
+  )
 
 # --- PESTAÑA 2: FORMULARIO 0601 (OBRAS) ---
 with tab2:
   st.subheader("Registro de Ejecución Financiera de Obras")
   st.markdown(
-      "Ingrese los datos de la obra y haga clic en 'Agregar Obra al Reporte'."
+      "Ingrese los datos de la obra y haga clic en 'Registrar Obra'."
   )
 
-  with st.form("form_obra", clear_on_submit=True):
-    col_a, col_b = st.columns(2)
-    with col_a:
-      accion_especifica = st.text_input(
-          "Acción Específica", placeholder="Ej. 01"
-      )
-      monto_programado = st.number_input(
-          "Monto Programado del Mes (V1)", min_value=0.0, format="%.2f"
-      )
-    with col_b:
-      denominacion_obra = st.text_input(
-          "Denominación de la Obra", placeholder="Nombre de la obra..."
-      )
-      monto_causado = st.number_input(
-          "Monto Causado / Ejecutado del Mes (V2)",
-          min_value=0.0,
-          format="%.2f",
+  col_a, col_b = st.columns(2)
+  with col_a:
+    accion_especifica = st.text_input(
+        "Acción Específica", placeholder="Ej. 01", key="form_accion"
+    )
+    monto_programado = st.number_input(
+        "Monto Programado del Mes (V1)",
+        min_value=0.0,
+        format="%.2f",
+        key="form_prog",
+    )
+  with col_b:
+    denominacion_obra = st.text_input(
+        "Denominación de la Obra",
+        placeholder="Nombre de la obra...",
+        key="form_obra_nombre",
+    )
+    monto_causado = st.number_input(
+        "Monto Causado / Ejecutado del Mes (V2)",
+        min_value=0.0,
+        format="%.2f",
+        key="form_caus",
+    )
+
+  if st.button("➕ Registrar Obra al Reporte", type="primary"):
+    if denominacion_obra and accion_especifica:
+      diferencia = monto_programado - monto_causado
+      st.session_state.obras.append({
+          "Acción Específica": accion_especifica,
+          "Denominación de la Obra": denominacion_obra,
+          "Programado Mes (V1)": monto_programado,
+          "Causado Mes (V2)": monto_causado,
+          "Diferencia": diferencia,
+      })
+      st.success(f"¡Obra '{denominacion_obra}' agregada exitosamente!")
+    else:
+      st.warning(
+          "Por favor, complete al menos la Acción Específica y la Denominación"
+          " de la Obra."
       )
 
-    submitted = st.form_submit_button("Agregar Obra al Reporte")
-    if submitted:
-      if denominacion_obra and accion_especifica:
-        diferencia = monto_programado - monto_causado
-        st.session_state.obras.append({
-            "Acción Específica": accion_especifica,
-            "Denominación de la Obra": denominacion_obra,
-            "Programado Mes (V1)": monto_programado,
-            "Causado Mes (V2)": monto_causado,
-            "Diferencia": diferencia,
-        })
-        st.success(f"¡Obra '{denominacion_obra}' agregada con éxito!")
-      else:
-        st.warning(
-            "Por favor, complete al menos la Acción Específica y la"
-            " Denominación de la Obra."
-        )
+  # Mostrar lista previa de obras cargadas en esta misma pestaña para control visual
+  if len(st.session_state.obras) > 0:
+    st.markdown("---")
+    st.markdown("### Obras Registradas Hasta el Momento:")
+    st.dataframe(pd.DataFrame(st.session_state.obras), use_container_width=True)
 
 # --- PESTAÑA 3: RESUMEN Y CONSOLIDADO ---
 with tab3:
@@ -126,6 +141,7 @@ with tab3:
     justificacion = st.text_area(
         "Redacte aquí las causas de las variaciones:",
         value=st.session_state.get("justificacion_texto", ""),
+        key="input_justificacion",
     )
     st.session_state["justificacion_texto"] = justificacion
 
@@ -166,7 +182,7 @@ with tab3:
 
     excel_data = output.getvalue()
 
-    # Botón OFICIAL de descarga directa a la computadora
+    # Botón oficial de descarga directa a la computadora
     st.download_button(
         label="📥 Descargar Consolidado Oficial (Instructivo N° 06)",
         data=excel_data,
@@ -178,12 +194,12 @@ with tab3:
         ),
     )
 
-    if st.button("🗑️ Limpiar Registros"):
+    if st.button("🗑️ Limpiar Todos los Registros"):
       st.session_state.obras = []
       st.session_state["justificacion_texto"] = ""
       st.rerun()
   else:
     st.info(
         "Aún no hay obras cargadas. Vaya a la pestaña 'Formulario 0601"
-        " (Obras)' para comenzar el registro del mes."
+        " (Obras)' para registrar al menos una obra."
     )
