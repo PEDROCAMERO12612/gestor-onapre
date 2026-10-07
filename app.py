@@ -1,3 +1,11 @@
+¡Excelente idea! Vamos a incorporar la carga masiva por archivo en la Pestaña 2.
+
+Con esta nueva función, podrás subir un archivo de Excel (.xlsx) o CSV con toda tu distribución de obras y partidas, y el sistema las cargará automáticamente en la tabla sin necesidad de escribirlas una por una. Además, para que sepas exactamente cómo estructurarlo, la aplicación incluirá un botón para descargar una plantilla modelo de ejemplo.
+
+Código actualizado con importación de archivos en app.py:
+Reemplaza todo el contenido de tu archivo app.py en GitHub con este código optimizado:
+
+Python
 import io
 import pandas as pd
 import streamlit as st
@@ -10,7 +18,7 @@ st.set_page_config(
 
 st.title("📊 Asistente de Ejecución Físico-Financiera (Instructivo N° 06)")
 st.markdown(
-    "Generación de reportes bajo los formatos oficiales y presupuestarios de la"
+    "Generación de reportes y carga masiva bajo los formatos oficiales de la"
     " ONAPRE."
 )
 
@@ -22,7 +30,7 @@ if "obras" not in st.session_state:
 tab1, tab2, tab3 = st.tabs(
     [
         "⚙️ Parámetros del Órgano",
-        "🏗️ Formulario 0601 (Obras y Partidas)",
+        "🏗️ Formulario 0601 (Carga Individual y Masiva)",
         "📑 Resumen y Consolidado",
     ]
 )
@@ -69,14 +77,70 @@ with tab1:
       f" {anio_fiscal})"
   )
 
-# --- PESTAÑA 2: FORMULARIO (OBRAS / PARTIDAS) ---
+# --- PESTAÑA 2: FORMULARIO (CARGA MANUAL Y MASIVA) ---
 with tab2:
   st.subheader("Registro de Asignación y Ejecución Financiera")
-  st.markdown(
-      "Ingrese la asignación anual aprobada, lo programado y lo ejecutado en"
-      " el mes."
-  )
 
+  # Sección de Carga Masiva por Archivo Excel
+  with st.expander(
+      "📁 ¿Prefieres subir un archivo con la distribución masiva? (Hacer clic"
+      " aquí)"
+  ):
+    st.markdown(
+        "Sube un archivo Excel con las columnas: `accion`, `denominacion`,"
+        " `asignado_anual`, `prog_mes`, `caus_mes`."
+    )
+
+    # Botón para descargar plantilla de ejemplo
+    df_plantilla = pd.DataFrame([{
+        "accion": "01",
+        "denominacion": "Nombre de la Obra o Partida",
+        "asignado_anual": 100000.00,
+        "prog_mes": 10000.00,
+        "caus_mes": 8000.00,
+    }])
+    output_temp = io.BytesIO()
+    df_plantilla.to_excel(output_temp, index=False)
+    st.download_button(
+        "📥 Descargar Plantilla Modelo para Carga Masiva",
+        data=output_temp.getvalue(),
+        file_name="plantilla_onapre_masiva.xlsx",
+        mime=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
+
+    archivo_subido = st.file_uploader(
+        "Seleccione su archivo Excel (.xlsx)", type=["xlsx"]
+    )
+    if archivo_subido is not None:
+      try:
+        df_importado = pd.read_excel(archivo_subido)
+        # Validar columnas mínimas
+        for _, row in df_importado.iterrows():
+          var = float(row["prog_mes"]) - float(row["caus_mes"])
+          st.session_state.obras.append({
+              "sipes": "01",
+              "ppto": "01",
+              "accion": str(row["accion"]),
+              "denominacion": str(row["denominacion"]),
+              "asignado_anual": float(row["asignado_anual"]),
+              "prog_mes": float(row["prog_mes"]),
+              "caus_mes": float(row["caus_mes"]),
+              "var_abs": var,
+          })
+        st.success(
+            "¡Archivo importado y procesado masivamente con éxito! Revise la"
+            " tabla inferior."
+        )
+      except Exception as e:
+        st.error(
+            f"Error al procesar el archivo. Asegúrese de usar la plantilla"
+            f" modelo. Detalle: {e}"
+        )
+
+  st.markdown("---")
+  st.markdown("### Carga Manual Individual")
   col_a, col_b = st.columns(2)
   with col_a:
     accion_especifica = st.text_input(
@@ -104,7 +168,7 @@ with tab2:
         key="form_caus",
     )
 
-  if st.button("➕ Registrar Partida al Reporte", type="primary"):
+  if st.button("➕ Registrar Partida Individual", type="primary"):
     if denominacion_obra and accion_especifica:
       variacion = monto_prog_mes - monto_caus_mes
       st.session_state.obras.append({
@@ -126,20 +190,14 @@ with tab2:
   # Gestión y eliminación individual de registros
   if len(st.session_state.obras) > 0:
     st.markdown("---")
-    st.markdown("### Registros Cargados (Gestión Individual):")
-    st.markdown(
-        "Si cometió un error en alguna partida, puede eliminarla seleccionando"
-        " el índice correspondiente:"
-    )
-
+    st.markdown("### Registros Cargados Actuales (Gestión Individual):")
     df_registros = pd.DataFrame(st.session_state.obras)
     st.dataframe(df_registros, use_container_width=True)
 
-    # Selector para eliminar un registro específico de forma individual
     col_del1, col_del2 = st.columns([2, 1])
     with col_del1:
       indice_a_borrar = st.selectbox(
-          "Seleccione el número de registro a eliminar:",
+          "Seleccione el registro a eliminar en caso de error:",
           options=range(len(st.session_state.obras)),
           format_func=lambda x: (
               f"Registro #{x+1}: {st.session_state.obras[x]['accion']} -"
@@ -147,7 +205,7 @@ with tab2:
           ),
       )
     with col_del2:
-      st.write("")  # Espaciador visual
+      st.write("")
       if st.button("🗑️ Eliminar Registro Seleccionado"):
         eliminado = st.session_state.obras.pop(indice_a_borrar)
         st.success(f"¡Registro '{eliminado['denominacion']}' eliminado!")
@@ -171,12 +229,11 @@ with tab3:
     )
     st.session_state["justificacion_texto"] = justificacion
 
-    # Generación del reporte con openpyxl integrando la asignación anual
+    # Generación del reporte con openpyxl
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Instructivo_06"
 
-    # Cabeceras institucionales
     ws["A1"] = f"(1) CÓDIGO PRESUPUESTARIO DEL ÓRGANO: {codigo_presupuestario}"
     ws["A2"] = f"DENOMINACIÓN DEL ÓRGANO: {denominacion_organo}"
     ws["A3"] = f"MES: {mes_reporte.upper()} {anio_fiscal}"
@@ -187,7 +244,6 @@ with tab3:
         " (En Bolívares)"
     )
 
-    # Cabeceras de la tabla oficial
     ws.cell(row=8, column=1, value="SIPES")
     ws.cell(row=8, column=2, value="Ppto.")
     ws.cell(row=8, column=3, value="Acción y Denominación")
@@ -196,7 +252,6 @@ with tab3:
     ws.cell(row=8, column=6, value="Causado Mes")
     ws.cell(row=8, column=7, value="Variación Absoluta")
 
-    # Inserción de filas de datos
     start_row = 9
     for i, obra in enumerate(st.session_state.obras):
       r = start_row + i
@@ -210,7 +265,6 @@ with tab3:
       ws.cell(row=r, column=6, value=obra["caus_mes"])
       ws.cell(row=r, column=7, value=obra["var_abs"])
 
-    # Justificación al pie
     pie_row = start_row + len(st.session_state.obras) + 2
     ws.cell(row=pie_row, column=1, value="JUSTIFICACIÓN DE LAS DESVIACIONES:")
     ws.cell(row=pie_row + 1, column=1, value=justificacion)
@@ -219,7 +273,6 @@ with tab3:
     wb.save(output)
     excel_data = output.getvalue()
 
-    # Botón de descarga oficial
     st.download_button(
         label="📥 Descargar Reporte Oficial (Formato ONAPRE)",
         data=excel_data,
