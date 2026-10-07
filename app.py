@@ -73,8 +73,8 @@ with tab1:
 with tab2:
   st.subheader("Registro de Asignación y Ejecución Financiera")
   st.markdown(
-      "Ingrese la asignación anual aprobada, junto con lo programado y"
-      " ejecutado en el mes."
+      "Ingrese la asignación anual aprobada, lo programado y lo ejecutado en"
+      " el mes."
   )
 
   col_a, col_b = st.columns(2)
@@ -123,10 +123,35 @@ with tab2:
           "Por favor, complete al menos la Acción Específica y la Denominación."
       )
 
+  # Gestión y eliminación individual de registros
   if len(st.session_state.obras) > 0:
     st.markdown("---")
-    st.markdown("### Registros Cargados:")
-    st.dataframe(pd.DataFrame(st.session_state.obras), use_container_width=True)
+    st.markdown("### Registros Cargados (Gestión Individual):")
+    st.markdown(
+        "Si cometió un error en alguna partida, puede eliminarla seleccionando"
+        " el índice correspondiente:"
+    )
+
+    df_registros = pd.DataFrame(st.session_state.obras)
+    st.dataframe(df_registros, use_container_width=True)
+
+    # Selector para eliminar un registro específico de forma individual
+    col_del1, col_del2 = st.columns([2, 1])
+    with col_del1:
+      indice_a_borrar = st.selectbox(
+          "Seleccione el número de registro a eliminar:",
+          options=range(len(st.session_state.obras)),
+          format_func=lambda x: (
+              f"Registro #{x+1}: {st.session_state.obras[x]['accion']} -"
+              f" {st.session_state.obras[x]['denominacion']}"
+          ),
+      )
+    with col_del2:
+      st.write("")  # Espaciador visual
+      if st.button("🗑️ Eliminar Registro Seleccionado"):
+        eliminado = st.session_state.obras.pop(indice_a_borrar)
+        st.success(f"¡Registro '{eliminado['denominacion']}' eliminado!")
+        st.rerun()
 
 # --- PESTAÑA 3: RESUMEN Y CONSOLIDADO OFICIAL ---
 with tab3:
@@ -206,7 +231,7 @@ with tab3:
         ),
     )
 
-    if st.button("🗑️ Limpiar Registros"):
+    if st.button("🗑️ Limpiar Todos los Registros"):
       st.session_state.obras = []
       st.session_state["justificacion_texto"] = ""
       st.rerun()
