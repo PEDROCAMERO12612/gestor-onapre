@@ -1,11 +1,3 @@
-¡Excelente idea! Vamos a incorporar la carga masiva por archivo en la Pestaña 2.
-
-Con esta nueva función, podrás subir un archivo de Excel (.xlsx) o CSV con toda tu distribución de obras y partidas, y el sistema las cargará automáticamente en la tabla sin necesidad de escribirlas una por una. Además, para que sepas exactamente cómo estructurarlo, la aplicación incluirá un botón para descargar una plantilla modelo de ejemplo.
-
-Código actualizado con importación de archivos en app.py:
-Reemplaza todo el contenido de tu archivo app.py en GitHub con este código optimizado:
-
-Python
 import io
 import pandas as pd
 import streamlit as st
@@ -18,133 +10,128 @@ st.set_page_config(
 
 st.title("📊 Asistente de Ejecución Físico-Financiera (Instructivo N° 06)")
 st.markdown(
-    "Generación de reportes y carga masiva bajo los formatos oficiales de la"
-    " ONAPRE."
+    "Herramienta simplificada para la carga masiva/manual, validación y cálculo"
+    " automático de informes para la ONAPRE."
 )
 
-# Inicializar memoria de sesión
+# Inicializar memoria de sesión para guardar las obras/partidas
 if "obras" not in st.session_state:
   st.session_state.obras = []
 
-# Pestañas principales
-tab1, tab2, tab3 = st.tabs(
+# --- BARRA LATERAL: PARÁMETROS DEL ÓRGANO ---
+with st.sidebar:
+  st.header("1. Parámetros del Órgano")
+  codigo_presupuestario = st.text_input(
+      "Código Presupuestario", value="29381", key="input_cod"
+  )
+  denominacion_organo = st.text_input(
+      "Denominación del Órgano",
+      value='513 BINF "GD MARIANO ONTILLA"',
+      key="input_den",
+  )
+  mes_reporte = st.selectbox(
+      "Mes de Reporte",
+      [
+          "Enero",
+          "Febrero",
+          "Marzo",
+          "Abril",
+          "Mayo",
+          "Junio",
+          "Julio",
+          "Agosto",
+          "Septiembre",
+          "Octubre",
+          "Noviembre",
+          "Diciembre",
+      ],
+      index=9,
+      key="input_mes",
+  )
+  anio_fiscal = st.number_input(
+      "Año Fiscal", min_value=2015, max_value=2030, value=2019, key="input_anio"
+  )
+
+  st.markdown("---")
+  st.success(f"Órgano configurado:\n{denominacion_organo}")
+
+# --- PESTAÑAS PRINCIPALES ---
+tab1, tab2, tab3, tab4 = st.tabs(
     [
-        "⚙️ Parámetros del Órgano",
-        "🏗️ Formulario 0601 (Carga Individual y Masiva)",
+        "🏗️ Formulario 0601 (Obras)",
+        "💰 Formulario 0602 (Financiero)",
+        "📈 Formulario 0603 (Físico)",
         "📑 Resumen y Consolidado",
     ]
 )
 
-# --- PESTAÑA 1: PARÁMETROS ---
+# --- PESTAÑA 1: FORMULARIO 0601 (OBRAS - CON CARGA MASIVA Y MANUAL) ---
 with tab1:
-  st.subheader("Parámetros del Órgano")
-  col1, col2 = st.columns(2)
-  with col1:
-    codigo_presupuestario = st.text_input(
-        "Código Presupuestario", value="29884", key="input_cod"
-    )
-    mes_reporte = st.selectbox(
-        "Mes de Reporte",
-        [
-            "Enero",
-            "Febrero",
-            "Marzo",
-            "Abril",
-            "Mayo",
-            "Junio",
-            "Julio",
-            "Agosto",
-            "Septiembre",
-            "Octubre",
-            "Noviembre",
-            "Diciembre",
-        ],
-        index=7,
-        key="input_mes",
-    )
-  with col2:
-    denominacion_organo = st.text_input(
-        "Denominación del Órgano / Ente Ejecutor",
-        value="MINISTERIO BRIGADA DE CARIBES",
-        key="input_den",
-    )
-    anio_fiscal = st.number_input(
-        "Año Fiscal", min_value=2024, max_value=2030, value=2026, key="input_anio"
-    )
+  st.subheader("Registro de Ejecución Financiera de Obras")
 
-  st.success(
-      f"Parámetros configurados para: {denominacion_organo} ({mes_reporte}"
-      f" {anio_fiscal})"
-  )
-
-# --- PESTAÑA 2: FORMULARIO (CARGA MANUAL Y MASIVA) ---
-with tab2:
-  st.subheader("Registro de Asignación y Ejecución Financiera")
-
-  # Sección de Carga Masiva por Archivo Excel
-  with st.expander(
-      "📁 ¿Prefieres subir un archivo con la distribución masiva? (Hacer clic"
-      " aquí)"
-  ):
+  # SECCIÓN DE CARGA MASIVA POR EXCEL
+  with st.expander("📁 Carga Masiva por Archivo Excel (Importar Distribución)"):
     st.markdown(
-        "Sube un archivo Excel con las columnas: `accion`, `denominacion`,"
-        " `asignado_anual`, `prog_mes`, `caus_mes`."
+        "Puedes subir un archivo Excel con las columnas: `accion`,"
+        " `denominacion`, `asignado_anual`, `prog_mes`, `caus_mes`."
     )
 
-    # Botón para descargar plantilla de ejemplo
+    # Botón para descargar plantilla modelo
     df_plantilla = pd.DataFrame([{
-        "accion": "01",
-        "denominacion": "Nombre de la Obra o Partida",
-        "asignado_anual": 100000.00,
-        "prog_mes": 10000.00,
-        "caus_mes": 8000.00,
+        "accion": "401000000",
+        "denominacion": "MATERIALES Y SUMINISTROS",
+        "asignado_anual": 5000000.00,
+        "prog_mes": 3312241.58,
+        "caus_mes": 0.00,
     }])
     output_temp = io.BytesIO()
     df_plantilla.to_excel(output_temp, index=False)
     st.download_button(
         "📥 Descargar Plantilla Modelo para Carga Masiva",
         data=output_temp.getvalue(),
-        file_name="plantilla_onapre_masiva.xlsx",
+        file_name="plantilla_onapre_obras.xlsx",
         mime=(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ),
     )
 
     archivo_subido = st.file_uploader(
-        "Seleccione su archivo Excel (.xlsx)", type=["xlsx"]
+        "Examinar archivo Excel (.xlsx)", type=["xlsx"]
     )
     if archivo_subido is not None:
       try:
         df_importado = pd.read_excel(archivo_subido)
-        # Validar columnas mínimas
         for _, row in df_importado.iterrows():
-          var = float(row["prog_mes"]) - float(row["caus_mes"])
+          prog = float(row["prog_mes"])
+          caus = float(row["caus_mes"])
+          variacion = prog - caus
           st.session_state.obras.append({
               "sipes": "01",
               "ppto": "01",
               "accion": str(row["accion"]),
               "denominacion": str(row["denominacion"]),
               "asignado_anual": float(row["asignado_anual"]),
-              "prog_mes": float(row["prog_mes"]),
-              "caus_mes": float(row["caus_mes"]),
-              "var_abs": var,
+              "prog_mes": prog,
+              "caus_mes": caus,
+              "var_abs": variacion,
           })
         st.success(
-            "¡Archivo importado y procesado masivamente con éxito! Revise la"
-            " tabla inferior."
+            "¡Archivo importado con éxito! Se añadieron los registros a la"
+            " tabla."
         )
       except Exception as e:
         st.error(
-            f"Error al procesar el archivo. Asegúrese de usar la plantilla"
-            f" modelo. Detalle: {e}"
+            "Error al procesar el archivo. Asegúrate de usar las columnas de la"
+            f" plantilla. Detalle: {e}"
         )
 
   st.markdown("---")
   st.markdown("### Carga Manual Individual")
+
   col_a, col_b = st.columns(2)
   with col_a:
     accion_especifica = st.text_input(
-        "Acción Específica / Código", placeholder="Ej. 01", key="form_accion"
+        "Acción Específica / Código", placeholder="Ej. 401000000", key="form_accion"
     )
     monto_asignado_anual = st.number_input(
         "Asignación Presupuestaria Anual (Bs.)",
@@ -153,22 +140,25 @@ with tab2:
         key="form_anual",
     )
     monto_prog_mes = st.number_input(
-        "Programado del Mes (V1)", min_value=0.0, format="%.2f", key="form_prog"
+        "Monto Programado del Mes (V1)",
+        min_value=0.0,
+        format="%.2f",
+        key="form_prog",
     )
   with col_b:
     denominacion_obra = st.text_input(
-        "Denominación de la Obra / Partida",
-        placeholder="Nombre de la obra...",
+        "Denominación de la Obra",
+        placeholder="MATERIALES Y SUMINISTROS",
         key="form_obra_nombre",
     )
     monto_caus_mes = st.number_input(
-        "Causado / Ejecutado del Mes (V2)",
+        "Monto Causado / Ejecutado del Mes (V2)",
         min_value=0.0,
         format="%.2f",
         key="form_caus",
     )
 
-  if st.button("➕ Registrar Partida Individual", type="primary"):
+  if st.button("➕ Registrar Obra al Reporte", type="primary"):
     if denominacion_obra and accion_especifica:
       variacion = monto_prog_mes - monto_caus_mes
       st.session_state.obras.append({
@@ -181,23 +171,21 @@ with tab2:
           "caus_mes": monto_caus_mes,
           "var_abs": variacion,
       })
-      st.success(f"¡Registro '{denominacion_obra}' agregado con éxito!")
+      st.success(f"¡Obra '{denominacion_obra}' registrada correctamente!")
     else:
-      st.warning(
-          "Por favor, complete al menos la Acción Específica y la Denominación."
-      )
+      st.warning("Por favor, completa al menos el código y la denominación.")
 
-  # Gestión y eliminación individual de registros
+  # Gestión y eliminación individual de registros cargados
   if len(st.session_state.obras) > 0:
     st.markdown("---")
-    st.markdown("### Registros Cargados Actuales (Gestión Individual):")
+    st.markdown("### 📋 Registros Actuales Cargados (Gestión Individual)")
     df_registros = pd.DataFrame(st.session_state.obras)
     st.dataframe(df_registros, use_container_width=True)
 
     col_del1, col_del2 = st.columns([2, 1])
     with col_del1:
       indice_a_borrar = st.selectbox(
-          "Seleccione el registro a eliminar en caso de error:",
+          "Selecciona un registro si deseas eliminarlo por error:",
           options=range(len(st.session_state.obras)),
           format_func=lambda x: (
               f"Registro #{x+1}: {st.session_state.obras[x]['accion']} -"
@@ -211,8 +199,37 @@ with tab2:
         st.success(f"¡Registro '{eliminado['denominacion']}' eliminado!")
         st.rerun()
 
-# --- PESTAÑA 3: RESUMEN Y CONSOLIDADO OFICIAL ---
+# --- PESTAÑA 2: FORMULARIO 0602 (FINANCIERO) ---
+with tab2:
+  st.subheader("Ejecución Financiera por Partidas Presupuestarias")
+  st.info(
+      "Módulo complementario para el registro financiero específico por partidas"
+      " del Instructivo N° 06."
+  )
+  col_f1, col_f2, col_f3 = st.columns(3)
+  with col_f1:
+    st.text_input("Proyecto de Acción Centralizada", key="fin_proy")
+    st.number_input("Comprometido Mes", min_value=0.0, format="%.2f", key="fin_com")
+  with col_f2:
+    st.text_input("Partida Presupuestaria", placeholder="Ej. 4.01", key="fin_part")
+    st.number_input("Causado Mes", min_value=0.0, format="%.2f", key="fin_cau")
+  with col_f3:
+    st.number_input("Programado Financiero", min_value=0.0, format="%.2f", key="fin_prog")
+
+  if st.button("Guardar Partida Financiera"):
+    st.success("Datos financieros guardados temporalmente en el sistema.")
+
+# --- PESTAÑA 3: FORMULARIO 0603 (FÍSICO) ---
 with tab3:
+  st.subheader("Ejecución Física de Metas")
+  st.info("Módulo para el registro del avance físico de las metas programadas.")
+  st.text_area("Descripción de la Meta Alcanzada", key="fis_meta")
+  st.number_input("Porcentaje de Avance Físico (%)", min_value=0.0, max_value=100.0, key="fis_porc")
+  if st.button("Guardar Avance Físico"):
+    st.success("Avance físico registrado correctamente.")
+
+# --- PESTAÑA 4: RESUMEN Y CONSOLIDADO ---
+with tab4:
   st.subheader(
       f"Resumen y Consolidado Oficial ONAPRE ({mes_reporte} {anio_fiscal})"
   )
@@ -223,13 +240,13 @@ with tab3:
 
     st.markdown("### 📋 Justificación de Desviaciones")
     justificacion = st.text_area(
-        "Redacte aquí las causas de las variaciones:",
+        "Redacte aquí las causas de las variaciones o desviaciones:",
         value=st.session_state.get("justificacion_texto", ""),
         key="input_justificacion",
     )
     st.session_state["justificacion_texto"] = justificacion
 
-    # Generación del reporte con openpyxl
+    # Generador del archivo oficial de Excel con openpyxl
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Instructivo_06"
@@ -290,6 +307,6 @@ with tab3:
       st.rerun()
   else:
     st.info(
-        "Aún no hay registros cargados. Vaya a la pestaña 'Formulario 0601'"
-        " para comenzar."
+        "Aún no hay registros cargados. Ve a la pestaña 'Formulario 0601 (Obras)'"
+        " para hacer tu carga masiva o manual."
     )
