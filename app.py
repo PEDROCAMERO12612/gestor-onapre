@@ -1,8 +1,7 @@
 import io
 import pandas as pd
 import streamlit as st
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
+import openpyxl
 
 # Configuración inicial de la página web
 st.set_page_config(
@@ -11,8 +10,7 @@ st.set_page_config(
 
 st.title("📊 Asistente de Ejecución Físico-Financiera (Instructivo N° 06)")
 st.markdown(
-    "Herramienta de generación de reportes bajo los formatos oficiales de la"
-    " ONAPRE."
+    "Generación de reportes bajo los formatos oficiales de la ONAPRE."
 )
 
 # Inicializar memoria de sesión
@@ -104,9 +102,9 @@ with tab2:
           "accion": accion_especifica,
           "denominacion": denominacion_obra,
           "prog_mes": monto_prog_mes,
-          "prog_acum": monto_prog_mes,  # Estimado base
+          "prog_acum": monto_prog_mes,
           "caus_mes": monto_caus_mes,
-          "caus_acum": monto_caus_mes,  # Estimado base
+          "caus_acum": monto_caus_mes,
           "var_abs": variacion,
       })
       st.success(f"¡Obra '{denominacion_obra}' agregada exitosamente!")
@@ -139,114 +137,54 @@ with tab3:
     )
     st.session_state["justificacion_texto"] = justificacion
 
-    # Generación de Excel con diseño exacto del Instructivo N° 06
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-      wb = writer.book
-      ws = wb.active
-      ws.title = "Instructivo_06"
+    # Generación directa mediante openpyxl sin conflictos
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Instructivo_06"
 
-      # Estilos institucionales
-      font_title = Font(name="Arial", size=10, bold=True)
-      font_bold = Font(name="Arial", size=9, bold=True)
-      font_normal = Font(name="Arial", size=9)
-      align_center = Alignment(
-          horizontal="center", vertical="center", wrap_text=True
-      )
-      align_left = Alignment(horizontal="left", vertical="center")
-      align_right = Alignment(horizontal="right", vertical="center")
+    # Cabeceras institucionales
+    ws["A1"] = f"(1) CÓDIGO PRESUPUESTARIO DEL ÓRGANO: {codigo_presupuestario}"
+    ws["A2"] = f"DENOMINACIÓN DEL ÓRGANO: {denominacion_organo}"
+    ws["A3"] = f"MES: {mes_reporte.upper()} {anio_fiscal}"
+    ws["H1"] = "FECHA: ___/___/______"
 
-      thin_border = Border(
-          left=Side(style="thin", color="000000"),
-          right=Side(style="thin", color="000000"),
-          top=Side(style="thin", color="000000"),
-          bottom=Side(style="thin", color="000000"),
-      )
+    ws["A5"] = (
+        "EJECUCIÓN FINANCIERA MENSUAL DE LAS OBRAS CONTENIDAS EN EL PROYECTO"
+        " (En Bolívares)"
+    )
 
-      # 1. Encabezado institucional superior
-      ws["A1"] = f"(1) CÓDIGO PRESUPUESTARIO DEL ÓRGANO: {codigo_presupuestario}"
-      ws["A2"] = f"DENOMINACIÓN DEL ÓRGANO: {denominacion_organo}"
-      ws["A3"] = f"MES: {mes_reporte.upper()} {anio_fiscal}"
-      ws["H1"] = "FECHA: ___/___/______"
+    # Cabeceras de la tabla
+    ws.cell(row=8, column=1, value="SIPES")
+    ws.cell(row=8, column=2, value="Ppto.")
+    ws.cell(row=8, column=3, value="Acción y Denominación de la Obra")
+    ws.cell(row=8, column=4, value="Programado Mes")
+    ws.cell(row=8, column=5, value="Causado Mes")
+    ws.cell(row=8, column=6, value="Variación Absoluta")
 
-      for r in range(1, 4):
-        ws.merge_cells(
-            start_row=r, start_column=1, end_row=r, end_column=4
-        )  # Ajuste de cabecera
-        ws.cell(row=r, column=1).font = font_title
-
-      # Título principal del formato
-      ws.merge_cells("A5:I5")
-      ws["A5"] = (
-          "EJECUCIÓN FINANCIERA MENSUAL DE LAS OBRAS CONTENIDAS EN EL PROYECTO"
-          " (En Bolívares)"
-      )
-      ws["A5"].font = Font(name="Arial", size=11, bold=True)
-      ws["A5"].alignment = align_center
-
-      # 2. Cabeceras de la Tabla Oficial (Estructura de celdas múltiples)
-      # Fila 7 y 8 para cabeceras combinadas
-      headers_row7 = [
-          "CÓDIGO (3)",
-          "",
-          "(4)\nACCIÓN ESPECÍFICA",
-          "EJECUTADO",
-          "",
-          "",
-          "",
-          "VARIACIÓN ACUMULADA",
-          "",
-      ]
-      ws.append([])  # Fila 6 vacía de separación
-      ws.append([
-          "SIPES",
-          "Ppto.",
-          "Denominación",
-          "PROGRAMADO\nMES",
-          "COMPROMETIDO\nMES",
-          "CAUSADO\nMES",
-          "PROGRAMADO\nACUMULADO",
-          "COMPROMETIDO\nACUMULADO",
-          "CAUSADO\nACUMULADO",
-          "(7) ABSOLUTA",
-          "(8) %",
-      ])
-
-      # Aplicar formato de cabecera a la tabla
-      # Inserción de datos reales desde session_state
-      row_start = 9
-      for i, obra in enumerate(st.session_state.obras):
-        row_num = row_start + i
-        ws.append([
-            obra["sipes"],
-            obra["ppto"],
-            obra["accion"] + " - " + obra["denominacion"],
-            obra["prog_mes"],
-            obra["prog_mes"],  # Comprometido mes simulado
-            obra["caus_mes"],
-            obra["prog_acum"],
-            obra["prog_acum"],
-            obra["caus_acum"],
-            obra["var_abs"],
-            (
-                (obra["var_abs"] / obra["prog_mes"] * 100)
-                if obra["prog_mes"] > 0
-                else 0.0
-            ),
-        ])
-
-      # Sección de justificación al pie
-      last_row = row_start + len(st.session_state.obras) + 2
+    # Inserción de filas de datos
+    start_row = 9
+    for i, obra in enumerate(st.session_state.obras):
+      r = start_row + i
+      ws.cell(row=r, column=1, value=obra["sipes"])
+      ws.cell(row=r, column=2, value=obra["ppto"])
       ws.cell(
-          row=last_row, column=1, value="JUSTIFICACIÓN DE LAS DESVIACIONES:"
-      ).font = font_bold
-      ws.cell(row=last_row + 1, column=1, value=justificacion).font = (
-          font_normal
+          row=r, column=3, value=f"{obra['accion']} - {obra['denominacion']}"
       )
+      ws.cell(row=r, column=4, value=obra["prog_mes"])
+      ws.cell(row=r, column=5, value=obra["caus_mes"])
+      ws.cell(row=r, column=6, value=obra["var_abs"])
 
+    # Justificación al pie
+    pie_row = start_row + len(st.session_state.obras) + 2
+    ws.cell(row=pie_row, column=1, value="JUSTIFICACIÓN DE LAS DESVIACIONES:")
+    ws.cell(row=pie_row + 1, column=1, value=justificacion)
+
+    # Guardar a buffer de memoria bytes
+    output = io.BytesIO()
+    wb.save(output)
     excel_data = output.getvalue()
 
-    # Botón de descarga con el formato oficial
+    # Botón de descarga oficial
     st.download_button(
         label="📥 Descargar Reporte Oficial (Formato ONAPRE)",
         data=excel_data,
