@@ -1,8 +1,4 @@
-Eso pasa porque Streamlit interpretó la sangría del bloque de texto como código fuente en lugar de HTML visual. Para solucionarlo de forma definitiva y robusta, vamos a utilizar el componente nativo de HTML de Streamlit (components.html), el cual evita por completo que el texto se muestre como código.
-
-Reemplaza todo tu archivo app.py por esta versión corregida:
-Python
-import streamlit as st
+mport streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 
