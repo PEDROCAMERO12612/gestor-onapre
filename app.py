@@ -6,7 +6,20 @@ st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide
 
 st.title("Sistema de Gestión - Instructivo N° 06 (ONAPRE)")
 
-# Botón de reinicio directo en la parte superior principal
+# Control ha Datos Generales (Unidad Dinámica)
+with st.sidebar:
+    st.header("⚙️ Datos de la Unidad u Órgano")
+    
+    codigo_organo = st.text_input("Código del Órgano", value="008", key="cod_org")
+    denom_organo = st.text_input("Denominación del Órgano", value="MINISTERIO DEL PODER POPULAR PARA LA DEFENSA", key="den_org")
+    unidad_ejecutora = st.text_input("Unidad Ejecutora / Responsable", value="53 BRIGADA DE INFANTERÍA DE SELVA", key="uni_eje")
+    mes_reporte = st.text_input("Mes de Reporte", value="JULIO", key="mes_rep")
+    fecha_reporte = st.text_input("Fecha de Emisión", value="31/07/2026", key="fec_rep")
+    
+    st.markdown("---")
+    st.info("💡 **Impresión única:** 'Resumen'-pe, epressiona **Ctrl + P** eguardahaguáicha opavave formato PDF-pe.")
+
+# Botón de reinicio principal
 col_tit, col_btn = st.columns([4, 1])
 with col_btn:
     if st.button("🔄 Reiniciar / Borrar Datos", type="primary"):
@@ -16,7 +29,7 @@ with col_btn:
 
 st.markdown("---")
 
-# Declaración de las 4 pestañas
+# Tab kuéra
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 1. Ejecución Financiera",
     "📈 2. Ejecución Física Proyectos",
@@ -29,7 +42,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # ==========================================
 with tab1:
     st.subheader("Formulario 1: Ejecución Financiera Mensual de Proyectos / Acciones Centralizadas")
-    st.markdown("Cargue un archivo Excel con su data o edite directamente en la tabla:")
+    st.markdown("Cargue un archivo Excel o edite los datos en la tabla:")
 
     archivo_fin = st.file_uploader("📂 Cargar Excel (Ejecución Financiera)", type=["xlsx"], key="up_fin")
 
@@ -37,18 +50,18 @@ with tab1:
         st.session_state.df_financiera = pd.DataFrame([
             {
                 "SIPES": "07815", "Ppto.": 29884, 
-                "Denominación": '12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"', 
-                "Prog. Mensual": 2655226.00, "Prog. Acumulado": 15931356.00,
+                "Denominación": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"), 
+                "Prog. Mensual": 0.00, "Prog. Acumulado": 0.00,
                 "Ejec. Mensual Comprometido": 0.00, "Ejec. Mensual Causado": 0.00,
                 "Ejec. Acumulado Comprometido": 0.00, "Ejec. Acumulado Causado": 0.00,
-                "Unidad Responsable": "12 BRIGADA CARIBES"
+                "Unidad Responsable": st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
             }
         ])
 
     if archivo_fin is not None:
         try:
             st.session_state.df_financiera = pd.read_excel(archivo_fin)
-            st.success("✅ Datos financieros cargados exitosamente desde el archivo.")
+            st.success("✅ Datos financieros cargados exitosamente.")
         except Exception as e:
             st.error(f"❌ Error al leer el archivo: {e}")
 
@@ -64,7 +77,7 @@ with tab1:
 # ==========================================
 with tab2:
     st.subheader("Formulario 2: Ejecución Física Mensual de los Proyectos del Órgano")
-    st.markdown("Cargue un archivo Excel o modifique las metas físicas del período:")
+    st.markdown("Cargue un archivo Excel o edite los datos físicamente:")
 
     archivo_fis = st.file_uploader("📂 Cargar Excel (Ejecución Física Proyectos)", type=["xlsx"], key="up_fis")
 
@@ -72,11 +85,11 @@ with tab2:
         st.session_state.df_fisica_proyectos = pd.DataFrame([
             {
                 "SIPES": "07815", "Ppto.": 29884, 
-                "Denominación": '12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"', 
+                "Denominación": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"), 
                 "Unidad de Medida": "OPERACIONES MILITARES", 
-                "Meta Prog. Mensual": 3.0, "Meta Prog. Acumulado": 3.0,
-                "Meta Ejec. Mensual": 3.0, "Meta Ejec. Acumulado": 3.0,
-                "Unidad Responsable": "12 BRIGADA CARIBES"
+                "Meta Prog. Mensual": 0.0, "Meta Prog. Acumulado": 0.0,
+                "Meta Ejec. Mensual": 0.0, "Meta Ejec. Acumulado": 0.0,
+                "Unidad Responsable": st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
             }
         ])
 
@@ -106,24 +119,9 @@ with tab3:
     if "df_cuadro_anexo" not in st.session_state:
         st.session_state.df_cuadro_anexo = pd.DataFrame([
             {
-                "Unidad": '12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"',
-                "N°": 2,
-                "Operación / Actividad": "PLANIFICACION Y SUPERVISION DE LAS ACTIVIDADES CIVICO-MILITARES EFECTUADAS POR LAS UNIDADES ADSCRITAS A ESTA UNIDAD SUPERIOR"
-            },
-            {
-                "Unidad": '12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"',
+                "Unidad": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"),
                 "N°": 1,
-                "Operación / Actividad": "MANTENIMIENTO DE EQUIPOS E INSTALACIONES"
-            },
-            {
-                "Unidad": '12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"',
-                "N°": 1,
-                "Operación / Actividad": "SEGURIDAD Y RESGUARDO DE INSTALACIONES Y EQUIPOS DE LA UNIDAD"
-            },
-            {
-                "Unidad": '12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"',
-                "N°": 2,
-                "Operación / Actividad": "DESPLIEGUE Y CONDUCCION DE LA OPERACION MILITAR ESCUDO BOLIVARIANO 2026."
+                "Operación / Actividad": "EJEMPLO DE ACTIVIDAD O OPERACION MILITAR"
             }
         ])
 
@@ -147,7 +145,7 @@ with tab3:
 with tab4:
     st.subheader("Resumen Consolidado e Impresión del Instructivo N° 06")
     st.markdown("---")
-    st.info("💡 **Instrucción de PDF:** Presiona **Ctrl + P** en tu teclado para exportar los tres formatos oficiales en un solo documento organizado.")
+    st.info("💡 **Instrucción de PDF:** Presiona **Ctrl + P** en tu teclado para exportar los tres formatos oficiales.")
 
     def limpiar_val(val):
         try:
@@ -155,7 +153,14 @@ with tab4:
         except:
             return 0.0
 
-    # 1. RENDERIZAR FORMATO 1 (FINANCIERA)
+    # Variables dinámicas del sidebar
+    c_org = st.session_state.get("cod_org", "008")
+    d_org = st.session_state.get("den_org", "MINISTERIO DEL PODER POPULAR PARA LA DEFENSA")
+    u_eje = st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
+    m_rep = st.session_state.get("mes_rep", "JULIO")
+    f_rep = st.session_state.get("fec_rep", "31/07/2026")
+
+    # 1. FORMATO 1 (FINANCIERA)
     df_fin = st.session_state.df_financiera
     filas_fin_html = ""
     t_prog_m, t_prog_a, t_comp_m, t_caus_m, t_comp_a, t_caus_a = 0, 0, 0, 0, 0, 0
@@ -189,15 +194,15 @@ with tab4:
                 <td style="border: 1px solid #000; padding: 4px;">{ca_a:,.2f}</td>
                 <td style="border: 1px solid #000; padding: 4px;">{v_comp_mes:.0f}%</td>
                 <td style="border: 1px solid #000; padding: 4px;">{v_caus_mes:.0f}%</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", "")}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
             </tr>
         """
 
     html_f1 = f"""
     <div style="border: 2px solid #000; padding: 12px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 30px; page-break-after: always;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-            <div><strong>CÓDIGO DEL ÓRGANO:</strong> 008<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> MINISTERIO DEL PODER POPULAR PARA LA DEFENSA<br><strong>MES:</strong> JULIO</div>
-            <div><strong>FECHA:</strong> 31/07/2026</div>
+            <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
+            <div><strong>FECHA:</strong> {f_rep}</div>
         </div>
         <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FINANCIERA MENSUAL DE LOS PROYECTOS/ACCIONES CENTRALIZADAS DEL ÓRGANO</h5>
         <p style="text-align: center; font-size: 8px; margin-bottom: 8px;">(En Bolívares)</p>
@@ -242,7 +247,6 @@ with tab4:
             </tfoot>
         </table>
 
-        <!-- Firmas con solo los cargos -->
         <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 8px; text-align: center;">
             <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
             <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
@@ -251,7 +255,7 @@ with tab4:
     </div>
     """
 
-    # 2. RENDERIZAR FORMATO 2 (FÍSICA PROYECTOS)
+    # 2. FORMATO 2 (FÍSICA PROYECTOS)
     df_fis = st.session_state.df_fisica_proyectos
     filas_fis_html = ""
     t_pm, t_pa, t_em, t_ea = 0, 0, 0, 0
@@ -281,15 +285,15 @@ with tab4:
                 <td style="border: 1px solid #000; padding: 4px;">100%</td>
                 <td style="border: 1px solid #000; padding: 4px;">0</td>
                 <td style="border: 1px solid #000; padding: 4px;">100%</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", "")}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
             </tr>
         """
 
     html_f2 = f"""
     <div style="border: 2px solid #000; padding: 12px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 30px; page-break-after: always;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-            <div><strong>CÓDIGO DEL ÓRGANO:</strong> 008<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> MINISTERIO DEL PODER POPULAR PARA LA DEFENSA<br><strong>MES:</strong> JULIO</div>
-            <div><strong>FECHA:</strong> 31/07/2026</div>
+            <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
+            <div><strong>FECHA:</strong> {f_rep}</div>
         </div>
         <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FÍSICA MENSUAL DE LOS PROYECTOS DEL ÓRGANO</h5>
         
@@ -332,7 +336,6 @@ with tab4:
             </tfoot>
         </table>
 
-        <!-- Firmas con solo los cargos -->
         <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 8px; text-align: center;">
             <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
             <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
@@ -341,7 +344,7 @@ with tab4:
     </div>
     """
 
-    # 3. RENDERIZAR FORMATO 3 (CUADRO ANEXO FÍSICA)
+    # 3. FORMATO 3 (CUADRO ANEXO FÍSICA)
     df_cuadro = st.session_state.df_cuadro_anexo
     filas_cuadro_html = ""
     total_n = 0
@@ -362,8 +365,8 @@ with tab4:
     html_f3 = f"""
     <div style="border: 2px solid #000; padding: 12px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-            <div><strong>UNIDAD:</strong> 12 BRIGADA DE CARIBES "G/J. ALMIDIEN RAMON MORENO ACOSTA"</div>
-            <div><strong>MES:</strong> JULIO</div>
+            <div><strong>UNIDAD:</strong> {u_eje}</div>
+            <div><strong>MES:</strong> {m_rep}</div>
         </div>
         <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px;">CUADRO ANEXO DE LA EJECUCION FISICA DE LA UNIDAD EJECUTORA LOCAL</h5>
         
@@ -385,7 +388,6 @@ with tab4:
             </tfoot>
         </table>
 
-        <!-- Firmas con solo los cargos -->
         <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 8px; text-align: center;">
             <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
             <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
