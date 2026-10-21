@@ -6,7 +6,7 @@ st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide
 
 st.title("Sistema de Gestión - Instructivo N° 06 (ONAPRE)")
 
-# Control ha Datos Generales (Unidad Dinámica)
+# Configuración dinámica de Unidad y Datos Generales
 with st.sidebar:
     st.header("⚙️ Datos de la Unidad u Órgano")
     
@@ -17,7 +17,7 @@ with st.sidebar:
     fecha_reporte = st.text_input("Fecha de Emisión", value="31/07/2026", key="fec_rep")
     
     st.markdown("---")
-    st.info("💡 **Impresión única:** 'Resumen'-pe, epressiona **Ctrl + P** eguardahaguáicha opavave formato PDF-pe.")
+    st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', presiona **Ctrl + P** para guardar los 4 formatos juntos en orientación horizontal.")
 
 # Botón de reinicio principal
 col_tit, col_btn = st.columns([4, 1])
@@ -29,29 +29,30 @@ with col_btn:
 
 st.markdown("---")
 
-# Tab kuéra
-tab1, tab2, tab3, tab4 = st.tabs([
+# Declaración de pestañas principales (4 Formatos Oficiales + Resumen)
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 1. Ejecución Financiera",
-    "📈 2. Ejecución Física Proyectos",
-    "📋 3. Cuadro Anexo Ejecución Física",
+    "💰 2. Financiera por Partidas",
+    "📈 3. Ejecución Física Proyectos",
+    "📋 4. Cuadro Anexo Física",
     "🖨️ Resumen y Exportación PDF"
 ])
 
 # ==========================================
-# PESTAÑA 1: EJECUCIÓN FINANCIERA
+# PESTAÑA 1: EJECUCIÓN FINANCIERA (PROYECTOS)
 # ==========================================
 with tab1:
     st.subheader("Formulario 1: Ejecución Financiera Mensual de Proyectos / Acciones Centralizadas")
-    st.markdown("Cargue un archivo Excel o edite los datos en la tabla:")
+    st.markdown("Cargue su archivo Excel o edite la tabla:")
 
-    archivo_fin = st.file_uploader("📂 Cargar Excel (Ejecución Financiera)", type=["xlsx"], key="up_fin")
+    archivo_fin = st.file_uploader("📂 Cargar Excel (Ejecución Financiera Proyectos)", type=["xlsx"], key="up_fin")
 
     if "df_financiera" not in st.session_state:
         st.session_state.df_financiera = pd.DataFrame([
             {
                 "SIPES": "07815", "Ppto.": 29884, 
                 "Denominación": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"), 
-                "Prog. Mensual": 0.00, "Prog. Acumulado": 0.00,
+                "Prog. Mensual": 2655226.00, "Prog. Acumulado": 15931356.00,
                 "Ejec. Mensual Comprometido": 0.00, "Ejec. Mensual Causado": 0.00,
                 "Ejec. Acumulado Comprometido": 0.00, "Ejec. Acumulado Causado": 0.00,
                 "Unidad Responsable": st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
@@ -61,9 +62,9 @@ with tab1:
     if archivo_fin is not None:
         try:
             st.session_state.df_financiera = pd.read_excel(archivo_fin)
-            st.success("✅ Datos financieros cargados exitosamente.")
+            st.success("✅ Datos financieros cargados con éxito.")
         except Exception as e:
-            st.error(f"❌ Error al leer el archivo: {e}")
+            st.error(f"❌ Error al leer archivo: {e}")
 
     st.session_state.df_financiera = st.data_editor(
         st.session_state.df_financiera, 
@@ -73,13 +74,54 @@ with tab1:
     )
 
 # ==========================================
-# PESTAÑA 2: EJECUCIÓN FÍSICA PROYECTOS
+# PESTAÑA 2: FINANCIERA POR PARTIDAS DE EGRESOS
 # ==========================================
 with tab2:
-    st.subheader("Formulario 2: Ejecución Física Mensual de los Proyectos del Órgano")
-    st.markdown("Cargue un archivo Excel o edite los datos físicamente:")
+    st.subheader("Formulario 2: Ejecución Financiera Mensual por Partidas de Egresos")
+    st.markdown("Cargue un archivo de Excel o detalle el desglose por clasificador presupuestario (SIGECOF):")
 
-    archivo_fis = st.file_uploader("📂 Cargar Excel (Ejecución Física Proyectos)", type=["xlsx"], key="up_fis")
+    archivo_partidas = st.file_uploader("📂 Cargar Excel (Ejecución por Partidas)", type=["xlsx"], key="up_part")
+
+    if "df_partidas" not in st.session_state:
+        st.session_state.df_partidas = pd.DataFrame([
+            {
+                "Partida": "4.02", "Genérica": "01", "Específica": "01", "Sub-Esp": "00", "Conc": "200",
+                "Denominación": "Alimentos y bebidas para personas", 
+                "Crédito Anual": 40266.00,
+                "Prog. Mes": 5000.00, "Comp. Mes": 0.00, "Caus. Mes": 0.00,
+                "Prog. Acum.": 20000.00, "Comp. Acum.": 0.00, "Caus. Acum.": 0.00
+            },
+            {
+                "Partida": "4.03", "Genérica": "09", "Específica": "01", "Sub-Esp": "00", "Conc": "200",
+                "Denominación": "Viáticos y pasajes dentro del país", 
+                "Crédito Anual": 12437.00,
+                "Prog. Mes": 2000.00, "Comp. Mes": 0.00, "Caus. Mes": 0.00,
+                "Prog. Acum.": 6000.00, "Comp. Acum.": 0.00, "Caus. Acum.": 0.00
+            }
+        ])
+
+    if archivo_partidas is not None:
+        try:
+            st.session_state.df_partidas = pd.read_excel(archivo_partidas)
+            st.success("✅ Partidas cargadas con éxito.")
+        except Exception as e:
+            st.error(f"❌ Error al leer archivo: {e}")
+
+    st.session_state.df_partidas = st.data_editor(
+        st.session_state.df_partidas, 
+        num_rows="dynamic", 
+        use_container_width=True,
+        key="editor_partidas"
+    )
+
+# ==========================================
+# PESTAÑA 3: EJECUCIÓN FÍSICA PROYECTOS
+# ==========================================
+with tab3:
+    st.subheader("Formulario 3: Ejecución Física Mensual de los Proyectos del Órgano")
+    st.markdown("Detalle metas físicas programadas y ejecutadas:")
+
+    archivo_fis = st.file_uploader("📂 Cargar Excel (Ejecución Física)", type=["xlsx"], key="up_fis")
 
     if "df_fisica_proyectos" not in st.session_state:
         st.session_state.df_fisica_proyectos = pd.DataFrame([
@@ -87,8 +129,8 @@ with tab2:
                 "SIPES": "07815", "Ppto.": 29884, 
                 "Denominación": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"), 
                 "Unidad de Medida": "OPERACIONES MILITARES", 
-                "Meta Prog. Mensual": 0.0, "Meta Prog. Acumulado": 0.0,
-                "Meta Ejec. Mensual": 0.0, "Meta Ejec. Acumulado": 0.0,
+                "Meta Prog. Mensual": 3.0, "Meta Prog. Acumulado": 3.0,
+                "Meta Ejec. Mensual": 3.0, "Meta Ejec. Acumulado": 3.0,
                 "Unidad Responsable": st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
             }
         ])
@@ -96,9 +138,9 @@ with tab2:
     if archivo_fis is not None:
         try:
             st.session_state.df_fisica_proyectos = pd.read_excel(archivo_fis)
-            st.success("✅ Datos de ejecución física cargados exitosamente.")
+            st.success("✅ Datos de ejecución física cargados con éxito.")
         except Exception as e:
-            st.error(f"❌ Error al leer el archivo: {e}")
+            st.error(f"❌ Error al leer archivo: {e}")
 
     st.session_state.df_fisica_proyectos = st.data_editor(
         st.session_state.df_fisica_proyectos, 
@@ -108,11 +150,11 @@ with tab2:
     )
 
 # ==========================================
-# PESTAÑA 3: CUADRO ANEXO EJECUCIÓN FÍSICA
+# PESTAÑA 4: CUADRO ANEXO FÍSICO
 # ==========================================
-with tab3:
-    st.subheader("Formulario 3: Cuadro Anexo de la Ejecución Física (Unidad Ejecutora Local)")
-    st.markdown("Cargue un archivo Excel o desglose el listado de operaciones y actividades:")
+with tab4:
+    st.subheader("Formulario 4: Cuadro Anexo de Ejecución Física (Unidad Ejecutora Local)")
+    st.markdown("Desglose operativo de actividades y misiones:")
 
     archivo_cua = st.file_uploader("📂 Cargar Excel (Cuadro Anexo)", type=["xlsx"], key="up_cua")
 
@@ -121,16 +163,21 @@ with tab3:
             {
                 "Unidad": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"),
                 "N°": 1,
-                "Operación / Actividad": "EJEMPLO DE ACTIVIDAD O OPERACION MILITAR"
+                "Operación / Actividad": "PLANIFICACION Y SUPERVISION DE ACTIVIDADES CIVICO-MILITARES"
+            },
+            {
+                "Unidad": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"),
+                "N°": 1,
+                "Operación / Actividad": "MANTENIMIENTO Y SEGURIDAD DE INSTALACIONES Y EQUIPOS"
             }
         ])
 
     if archivo_cua is not None:
         try:
             st.session_state.df_cuadro_anexo = pd.read_excel(archivo_cua)
-            st.success("✅ Cuadro anexo cargado exitosamente.")
+            st.success("✅ Cuadro anexo cargado con éxito.")
         except Exception as e:
-            st.error(f"❌ Error al leer el archivo: {e}")
+            st.error(f"❌ Error al leer archivo: {e}")
 
     st.session_state.df_cuadro_anexo = st.data_editor(
         st.session_state.df_cuadro_anexo, 
@@ -140,12 +187,12 @@ with tab3:
     )
 
 # ==========================================
-# PESTAÑA 4: RESUMEN Y EXPORTACIÓN UNIFICADA PDF
+# PESTAÑA 5: RESUMEN Y EXPORTACIÓN UNIFICADA
 # ==========================================
-with tab4:
-    st.subheader("Resumen Consolidado e Impresión del Instructivo N° 06")
+with tab5:
+    st.subheader("Resumen Consolidado e Impresión Completa")
     st.markdown("---")
-    st.info("💡 **Instrucción de PDF:** Presiona **Ctrl + P** en tu teclado para exportar los tres formatos oficiales.")
+    st.info("💡 Presiona **Ctrl + P** en tu teclado. Los 4 formatos se guardarán en un solo PDF horizontal con páginas independientes.")
 
     def limpiar_val(val):
         try:
@@ -153,58 +200,66 @@ with tab4:
         except:
             return 0.0
 
-    # Variables dinámicas del sidebar
     c_org = st.session_state.get("cod_org", "008")
     d_org = st.session_state.get("den_org", "MINISTERIO DEL PODER POPULAR PARA LA DEFENSA")
     u_eje = st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
     m_rep = st.session_state.get("mes_rep", "JULIO")
     f_rep = st.session_state.get("fec_rep", "31/07/2026")
 
-    # 1. FORMATO 1 (FINANCIERA)
+    # HTML FIRMAS UNIFICADAS
+    html_firmas = """
+    <div style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 8px; text-align: center;">
+        <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
+        <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
+        <div>_________________________________<br><strong>COMANDANTE</strong></div>
+    </div>
+    """
+
+    # 1. FORMATO 1: FINANCIERA PROYECTOS
     df_fin = st.session_state.df_financiera
     filas_fin_html = ""
-    t_prog_m, t_prog_a, t_comp_m, t_caus_m, t_comp_a, t_caus_a = 0, 0, 0, 0, 0, 0
+    t_pm, t_pa, t_cm, t_cam, t_ca, t_caa = 0, 0, 0, 0, 0, 0
 
     for _, row in df_fin.iterrows():
         denom = row.get("Denominación", "")
         if not denom or str(denom).strip() in ["None", ""]: continue
         
-        p_m = limpiar_val(row.get("Prog. Mensual", 0))
-        p_a = limpiar_val(row.get("Prog. Acumulado", 0))
-        c_m = limpiar_val(row.get("Ejec. Mensual Comprometido", 0))
-        ca_m = limpiar_val(row.get("Ejec. Mensual Causado", 0))
-        c_a = limpiar_val(row.get("Ejec. Acumulado Comprometido", 0))
-        ca_a = limpiar_val(row.get("Ejec. Acumulado Causado", 0))
+        pm = limpiar_val(row.get("Prog. Mensual", 0))
+        pa = limpiar_val(row.get("Prog. Acumulado", 0))
+        cm = limpiar_val(row.get("Ejec. Mensual Comprometido", 0))
+        cam = limpiar_val(row.get("Ejec. Mensual Causado", 0))
+        ca = limpiar_val(row.get("Ejec. Acumulado Comprometido", 0))
+        caa = limpiar_val(row.get("Ejec. Acumulado Causado", 0))
         
-        v_comp_mes = ((c_m - p_m) / p_m * 100) if p_m > 0 else -100.0
-        v_caus_mes = ((ca_m - p_m) / p_m * 100) if p_m > 0 else -100.0
+        v_comp = ((cm - pm) / pm * 100) if pm > 0 else -100.0
+        v_caus = ((cam - pm) / pm * 100) if pm > 0 else -100.0
 
-        t_prog_m += p_m; t_prog_a += p_a; t_comp_m += c_m; t_caus_m += ca_m; t_comp_a += c_a; t_caus_a += ca_a
+        t_pm += pm; t_pa += pa; t_cm += cm; t_cam += cam; t_ca += ca; t_caa += caa
 
         filas_fin_html += f"""
             <tr>
                 <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
                 <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
                 <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{p_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{p_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{c_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{ca_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{c_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{ca_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{v_comp_mes:.0f}%</td>
-                <td style="border: 1px solid #000; padding: 4px;">{v_caus_mes:.0f}%</td>
+                <td style="border: 1px solid #000; padding: 4px;">{pm:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{pa:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{cm:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{cam:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{ca:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{caa:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{v_comp:.0f}%</td>
+                <td style="border: 1px solid #000; padding: 4px;">{v_caus:.0f}%</td>
                 <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
             </tr>
         """
 
     html_f1 = f"""
-    <div style="border: 2px solid #000; padding: 12px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 30px; page-break-after: always;">
+    <div class="hoja-formato">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
             <div><strong>FECHA:</strong> {f_rep}</div>
         </div>
-        <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FINANCIERA MENSUAL DE LOS PROYECTOS/ACCIONES CENTRALIZADAS DEL ÓRGANO</h5>
+        <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FINANCIERA MENSUAL DE LOS PROYECTOS / ACCIONES CENTRALIZADAS DEL ÓRGANO</h5>
         <p style="text-align: center; font-size: 8px; margin-bottom: 8px;">(En Bolívares)</p>
         
         <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 8px;">
@@ -217,7 +272,7 @@ with tab4:
                     <th colspan="2" style="border: 1px solid #000; padding: 3px;">Ejecutado Mensual</th>
                     <th colspan="2" style="border: 1px solid #000; padding: 3px;">Ejecutado Acumulado</th>
                     <th colspan="2" style="border: 1px solid #000; padding: 3px;">Variación Mes</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad Responsable de la Ejecución</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad Responsable</th>
                 </tr>
                 <tr>
                     <th style="border: 1px solid #000; padding: 3px;">Mensual</th>
@@ -226,8 +281,8 @@ with tab4:
                     <th style="border: 1px solid #000; padding: 3px;">Causado</th>
                     <th style="border: 1px solid #000; padding: 3px;">Compromiso</th>
                     <th style="border: 1px solid #000; padding: 3px;">Causado</th>
-                    <th style="border: 1px solid #000; padding: 3px;">% Compromiso</th>
-                    <th style="border: 1px solid #000; padding: 3px;">% Causado</th>
+                    <th style="border: 1px solid #000; padding: 3px;">% Comp.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">% Caus.</th>
                 </tr>
             </thead>
             <tbody>
@@ -236,29 +291,126 @@ with tab4:
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f1f5f9;">
                     <td colspan="3" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL.....</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_prog_m:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_prog_a:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_comp_m:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_caus_m:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_comp_a:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_caus_a:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{t_pm:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{t_pa:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{t_cm:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{t_cam:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{t_ca:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{t_caa:,.2f}</td>
                     <td colspan="3" style="border: 1px solid #000; padding: 4px;"></td>
                 </tr>
             </tfoot>
         </table>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 8px; text-align: center;">
-            <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
-            <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
-            <div>_________________________________<br><strong>COMANDANTE</strong></div>
-        </div>
+        {html_firmas}
     </div>
     """
 
-    # 2. FORMATO 2 (FÍSICA PROYECTOS)
+    # 2. FORMATO 2: FINANCIERA POR PARTIDAS DE EGRESOS (IMAGEN ADJUNTA)
+    df_part = st.session_state.df_partidas
+    filas_part_html = ""
+    tot_cred, tot_pm_p, tot_cm_p, tot_cam_p, tot_pa_p, tot_ca_p, tot_caa_p = 0, 0, 0, 0, 0, 0, 0
+
+    for _, row in df_part.iterrows():
+        den = row.get("Denominación", "")
+        if not den or str(den).strip() in ["None", ""]: continue
+
+        cred = limpiar_val(row.get("Crédito Anual", 0))
+        p_m = limpiar_val(row.get("Prog. Mes", 0))
+        c_m = limpiar_val(row.get("Comp. Mes", 0))
+        ca_m = limpiar_val(row.get("Caus. Mes", 0))
+        p_a = limpiar_val(row.get("Prog. Acum.", 0))
+        c_a = limpiar_val(row.get("Comp. Acum.", 0))
+        ca_a = limpiar_val(row.get("Caus. Acum.", 0))
+
+        var_abs = ca_a - p_a
+        var_rel = ((var_abs) / p_a * 100) if p_a > 0 else 0.0
+
+        tot_cred += cred; tot_pm_p += p_m; tot_cm_p += c_m; tot_cam_p += ca_m
+        tot_pa_p += p_a; tot_ca_p += c_a; tot_caa_p += ca_a
+
+        filas_part_html += f"""
+            <tr>
+                <td style="border: 1px solid #000; padding: 3px;">{row.get("Partida", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{row.get("Genérica", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{row.get("Específica", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{row.get("Sub-Esp", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{row.get("Conc", "")}</td>
+                <td style="text-align: left; border: 1px solid #000; padding: 3px;">{den}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{cred:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{p_m:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{c_m:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{ca_m:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{p_a:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{c_a:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{ca_a:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{var_abs:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px;">{var_rel:.1f}%</td>
+            </tr>
+        """
+
+    tot_v_abs = tot_caa_p - tot_pa_p
+    tot_v_rel = (tot_v_abs / tot_pa_p * 100) if tot_pa_p > 0 else 0.0
+
+    html_f2 = f"""
+    <div class="hoja-formato">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
+            <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
+            <div><strong>FECHA:</strong> {f_rep}</div>
+        </div>
+        <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FINANCIERA MENSUAL DE LOS PROYECTOS / ACCIONES CENTRALIZADAS DEL ÓRGANO, POR PARTIDAS DE EGRESOS</h5>
+        <p style="text-align: center; font-size: 8px; margin-bottom: 8px;">(En Bolívares)</p>
+        
+        <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 8px;">
+            <thead style="background-color: #e2e8f0;">
+                <tr>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">PART.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">GEN.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">ESP.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">SUB.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">CONC.</th>
+                    <th rowspan="2" style="width: 22%; border: 1px solid #000; padding: 3px;">DENOMINACIÓN</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">CRÉDITO ANUAL</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 3px;">EJECUCIÓN MENSUAL</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 3px;">EJECUCIÓN ACUMULADA</th>
+                    <th colspan="2" style="border: 1px solid #000; padding: 3px;">VARIACIÓN ACUMULADA</th>
+                </tr>
+                <tr>
+                    <th style="border: 1px solid #000; padding: 3px;">PROG.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">COMP.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">CAUS.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">PROG.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">COMP.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">CAUS.</th>
+                    <th style="border: 1px solid #000; padding: 3px;">ABSOLUTA</th>
+                    <th style="border: 1px solid #000; padding: 3px;">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {filas_part_html}
+            </tbody>
+            <tfoot>
+                <tr style="font-weight: bold; background-color: #f1f5f9;">
+                    <td colspan="6" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL PRESUPUESTO:</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_cred:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_pm_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_cm_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_cam_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_pa_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_ca_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_caa_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_v_abs:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_v_rel:.1f}%</td>
+                </tr>
+            </tfoot>
+        </table>
+        {html_firmas}
+    </div>
+    """
+
+    # 3. FORMATO 3: EJECUCIÓN FÍSICA PROYECTOS
     df_fis = st.session_state.df_fisica_proyectos
     filas_fis_html = ""
-    t_pm, t_pa, t_em, t_ea = 0, 0, 0, 0
+    tot_f_pm, tot_f_pa, tot_f_em, tot_f_ea = 0, 0, 0, 0
 
     for _, row in df_fis.iterrows():
         denom = row.get("Denominación", "")
@@ -269,7 +421,7 @@ with tab4:
         em = limpiar_val(row.get("Meta Ejec. Mensual", 0))
         ea = limpiar_val(row.get("Meta Ejec. Acumulado", 0))
 
-        t_pm += pm; t_pa += pa; t_em += em; t_ea += ea
+        tot_f_pm += pm; tot_f_pa += pa; tot_f_em += em; tot_f_ea += ea
 
         filas_fis_html += f"""
             <tr>
@@ -289,8 +441,8 @@ with tab4:
             </tr>
         """
 
-    html_f2 = f"""
-    <div style="border: 2px solid #000; padding: 12px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 30px; page-break-after: always;">
+    html_f3 = f"""
+    <div class="hoja-formato">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
             <div><strong>FECHA:</strong> {f_rep}</div>
@@ -304,11 +456,11 @@ with tab4:
                     <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Ppto.</th>
                     <th rowspan="2" style="border: 1px solid #000; padding: 3px; width: 18%;">Denominación</th>
                     <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad de Medida</th>
-                    <th colspan="2" style="border: 1px solid #000; padding: 3px;">Meta del Proyecto Programada</th>
-                    <th colspan="2" style="border: 1px solid #000; padding: 3px;">Meta del Proyecto Ejecutada</th>
+                    <th colspan="2" style="border: 1px solid #000; padding: 3px;">Meta Programada</th>
+                    <th colspan="2" style="border: 1px solid #000; padding: 3px;">Meta Ejecutada</th>
                     <th colspan="2" style="border: 1px solid #000; padding: 3px;">Variación Mes</th>
                     <th colspan="2" style="border: 1px solid #000; padding: 3px;">Variación Acumulada</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad Responsable de la Ejecución</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad Responsable</th>
                 </tr>
                 <tr>
                     <th style="border: 1px solid #000; padding: 3px;">Mensual</th>
@@ -327,83 +479,93 @@ with tab4:
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f1f5f9;">
                     <td colspan="4" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL.....</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_pm:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_pa:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_em:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{t_ea:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_f_pm:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_f_pa:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_f_em:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_f_ea:,.0f}</td>
                     <td colspan="5" style="border: 1px solid #000; padding: 4px;"></td>
                 </tr>
             </tfoot>
         </table>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 8px; text-align: center;">
-            <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
-            <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
-            <div>_________________________________<br><strong>COMANDANTE</strong></div>
-        </div>
+        {html_firmas}
     </div>
     """
 
-    # 3. FORMATO 3 (CUADRO ANEXO FÍSICA)
-    df_cuadro = st.session_state.df_cuadro_anexo
-    filas_cuadro_html = ""
-    total_n = 0
+    # 4. FORMATO 4: CUADRO ANEXO FÍSICO
+    df_cuad = st.session_state.df_cuadro_anexo
+    filas_cuad_html = ""
+    tot_n = 0
 
-    for _, row in df_cuadro.iterrows():
+    for _, row in df_cuad.iterrows():
         op = row.get("Operación / Actividad", "")
         if not op or str(op).strip() in ["None", ""]: continue
         n = int(row.get("N°", 0))
-        total_n += n
+        tot_n += n
 
-        filas_cuadro_html += f"""
+        filas_cuad_html += f"""
             <tr>
                 <td style="border: 1px solid #000; padding: 6px; text-align: center;">{n}</td>
                 <td style="border: 1px solid #000; padding: 6px; text-align: left;">{op}</td>
             </tr>
         """
 
-    html_f3 = f"""
-    <div style="border: 2px solid #000; padding: 12px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px;">
+    html_f4 = f"""
+    <div class="hoja-formato" style="page-break-after: avoid;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>UNIDAD:</strong> {u_eje}</div>
             <div><strong>MES:</strong> {m_rep}</div>
         </div>
-        <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px;">CUADRO ANEXO DE LA EJECUCION FISICA DE LA UNIDAD EJECUTORA LOCAL</h5>
+        <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px;">CUADRO ANEXO DE LA EJECUCIÓN FÍSICA DE LA UNIDAD EJECUTORA LOCAL</h5>
         
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
             <thead style="background-color: #e2e8f0; text-align: center;">
                 <tr>
                     <th style="border: 1px solid #000; padding: 5px; width: 10%;">N°</th>
-                    <th style="border: 1px solid #000; padding: 5px; width: 90%;">OPERACIÓN</th>
+                    <th style="border: 1px solid #000; padding: 5px; width: 90%;">OPERACIÓN / ACTIVIDAD</th>
                 </tr>
             </thead>
             <tbody>
-                {filas_cuadro_html}
+                {filas_cuad_html}
             </tbody>
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f1f5f9;">
-                    <td style="border: 1px solid #000; padding: 5px; text-align: center;">{total_n}</td>
+                    <td style="border: 1px solid #000; padding: 5px; text-align: center;">{tot_n}</td>
                     <td style="border: 1px solid #000; padding: 5px; text-align: left;">TOTAL</td>
                 </tr>
             </tfoot>
         </table>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 8px; text-align: center;">
-            <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
-            <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
-            <div>_________________________________<br><strong>COMANDANTE</strong></div>
-        </div>
+        {html_firmas}
     </div>
     """
 
-    # Bloque consolidado unificado para PDF
-    html_consolidado_total = f"""
+    # Estilos CSS de impresión horizontal y separación por páginas
+    html_consolidado = f"""
     <html>
     <head>
         <style>
             @media print {{
-                @page {{ size: letter landscape; margin: 0.5cm; }}
-                body {{ background: #fff !important; }}
+                @page {{
+                    size: letter landscape;
+                    margin: 0.5cm;
+                }}
+                body {{
+                    background: #fff !important;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .hoja-formato {{
+                    page-break-after: always !important;
+                    break-after: page !important;
+                }}
+            }}
+            .hoja-formato {{
+                border: 2px solid #000;
+                padding: 15px;
+                background: #fff;
+                font-family: Arial, sans-serif;
+                color: #000;
+                margin-bottom: 30px;
+                box-sizing: border-box;
             }}
         </style>
     </head>
@@ -411,9 +573,10 @@ with tab4:
         {html_f1}
         {html_f2}
         {html_f3}
+        {html_f4}
     </body>
     </html>
     """
 
-    st.markdown("### Vista Consolidada de los 3 Formatos Oficiales")
-    components.html(html_consolidado_total, height=850, scrolling=True)
+    st.markdown("### Vista Consolidada de los 4 Formatos Oficiales (Vista Previa Horizontal)")
+    components.html(html_consolidado, height=900, scrolling=True)
