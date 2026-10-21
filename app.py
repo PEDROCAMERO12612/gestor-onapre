@@ -38,17 +38,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Declaración de pestañas
+# Declaración de pestañas principales
 tab1, tab2, tab3, tab4 = st.tabs([
     "🏗️ Formulario 0601 (Obras)",
-    "💰 Formulario 0602 (Financiero)",
+    "💰 Formulario 0602 (Financiero / Distribución)",
     "📈 Formulario 0603 (Físico)",
     "📋 Resumen y Consolidado"
 ])
 
 with tab1:
     st.subheader("Formulario 0601: Carga y Ejecución Mensual de Obras")
-    st.markdown("Ingrese o edite la distribución y los montos ejecutados directamente en la tabla inferior:")
+    st.markdown("Ingrese o edite la distribución de obras. Para borrar una fila equivocada, selecciónela en la tabla y presione la tecla **Supr** o **Backspace**.")
 
     if "df_obras" not in st.session_state:
         st.session_state.df_obras = pd.DataFrame([
@@ -71,45 +71,85 @@ with tab1:
     )
 
 with tab2:
-    st.subheader("Formulario 0602: Ejecución Financiera Mensual por Partidas")
-    st.markdown("Control de partidas, genéricas, específicas y subespecíficas (SIGECOF)")
-    st.text_area("Explicación de Desviaciones (Obligatorio si lo ejecutado difiere de lo programado)", key="desviacion_0602")
+    st.subheader("Formulario 0602: Distribución Presupuestaria y Ejecución Financiera (SIGECOF)")
+    st.markdown("""
+    Cargue o edite las partidas presupuestarias anuales (Créditos, Programado y Ejecutado) correspondientes a su unidad ejecutora.  
+    *💡 **Nota:** Puede agregar nuevas filas al final o borrar filas haciendo clic en el selector de fila y presionando `Supr`.*
+    """)
+
+    if "df_partidas" not in st.session_state:
+        st.session_state.df_partidas = pd.DataFrame([
+            {
+                "Partida": "4.02", "Genérica": "01", "Específica": "01", "Sub-Esp": "00", "Conc": "200",
+                "Denominación": "Alimentos y bebidas para personas", 
+                "Crédito Anual (Bs.)": 40266.0,
+                "Prog. Mes": 5000.0, "Comp. Mes": 4000.0, "Caus. Mes": 4000.0,
+                "Prog. Acum.": 20000.0, "Comp. Acum.": 18000.0, "Caus. Acum.": 18000.0
+            },
+            {
+                "Partida": "4.03", "Genérica": "09", "Específica": "01", "Sub-Esp": "00", "Conc": "200",
+                "Denominación": "Viáticos y pasajes dentro del país", 
+                "Crédito Anual (Bs.)": 12437.0,
+                "Prog. Mes": 2000.0, "Comp. Mes": 1500.0, "Caus. Mes": 1500.0,
+                "Prog. Acum.": 6000.0, "Comp. Acum.": 5500.0, "Caus. Acum.": 5500.0
+            }
+        ])
+
+    st.session_state.df_partidas = st.data_editor(
+        st.session_state.df_partidas,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="editor_partidas"
+    )
+
+    st.markdown("---")
+    st.text_area(
+        "Explicación de las desviaciones financieras (Obligatorio si lo ejecutado difiere de lo programado)", 
+        key="desviacion_0602"
+    )
 
 with tab3:
     st.subheader("Formulario 0603: Ejecución Física Mensual")
-    unidad_medida = st.text_input("Unidad Física de Medida", key="0603_UM")
+    unidad_medida = st.text_input("Unidad Física de Medida", key="0603_UM", value="Metros / Actividades / Unidades")
+    st.markdown("Detalle la meta física programada y ejecutada del período.")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.number_input("Programada Mes", value=10.0, key="fis_prog_mes")
+    with col2:
+        st.number_input("Ejecutada Mes", value=8.0, key="fis_ejec_mes")
+    with col3:
+        st.number_input("Acumulada Ejecutada", value=35.0, key="fis_ejec_acum")
 
 with tab4:
     st.subheader("Resumen e Impresión del Instructivo N° 06")
     st.markdown("---")
     
-    df_actual = st.session_state.df_obras
-    
-    filas_html = ""
+    def limpiar_val(val):
+        try:
+            return float(val) if val is not None and not pd.isna(val) else 0.0
+        except:
+            return 0.0
+
+    # ==========================
+    # 1. RENDER FORMULARIO 0601
+    # ==========================
+    df_obras = st.session_state.df_obras
+    filas_obras_html = ""
     tot_p_mes, tot_c_mes, tot_ca_mes = 0, 0, 0
     tot_p_acum, tot_c_acum, tot_ca_acum = 0, 0, 0
     
-    for index, row in df_actual.iterrows():
-        # Validar si el nombre de la obra está vacío o es nulo para omitir filas vacías
-        nombre_obra = row["Denominación de la Obra"]
-        if not nombre_obra or pd.isna(nombre_obra) or str(nombre_obra).strip() == "None":
+    for index, row in df_obras.iterrows():
+        nombre_obra = row.get("Denominación de la Obra", "")
+        if not nombre_obra or pd.isna(nombre_obra) or str(nombre_obra).strip() in ["None", ""]:
             continue
             
-        # Función auxiliar segura para convertir valores a float evitando errores por celdas vacías
-        def limpiar_val(val):
-            try:
-                return float(val) if val is not None and not pd.isna(val) else 0.0
-            except:
-                return 0.0
-
-        p_mes = limpiar_val(row["Prog. Mes"])
-        co_mes = limpiar_val(row["Comp. Mes"])
-        ca_mes = limpiar_val(row["Caus. Mes"])
-        p_acum = limpiar_val(row["Prog. Acum."])
-        co_acum = limpiar_val(row["Comp. Acum."])
-        ca_acum = limpiar_val(row["Caus. Acum."])
+        p_mes = limpiar_val(row.get("Prog. Mes", 0))
+        co_mes = limpiar_val(row.get("Comp. Mes", 0))
+        ca_mes = limpiar_val(row.get("Caus. Mes", 0))
+        p_acum = limpiar_val(row.get("Prog. Acum.", 0))
+        co_acum = limpiar_val(row.get("Comp. Acum.", 0))
+        ca_acum = limpiar_val(row.get("Caus. Acum.", 0))
         
-        # Fórmulas Oficiales ONAPRE
         var_abs = ca_acum - p_acum
         var_rel = (var_abs / p_acum * 100) if p_acum > 0 else 0.0
         
@@ -120,7 +160,7 @@ with tab4:
         tot_c_acum += co_acum
         tot_ca_acum += ca_acum
         
-        filas_html += f"""
+        filas_obras_html += f"""
             <tr>
                 <td style="text-align: left; border: 1px solid #000; padding: 4px;">{nombre_obra}</td>
                 <td style="border: 1px solid #000; padding: 4px;">{p_mes:,.2f}</td>
@@ -137,7 +177,8 @@ with tab4:
     tot_var_abs_acum = tot_ca_acum - tot_p_acum
     tot_var_rel_acum = (tot_var_abs_acum / tot_p_acum * 100) if tot_p_acum > 0 else 0.0
 
-    st.markdown("""
+    st.markdown("### Formato Oficial: 0601 (Obras)")
+    st.markdown(f"""
     <div class="formato-onapre">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
             <div>
@@ -153,13 +194,6 @@ with tab4:
         <h5 style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 2px;">EJECUCIÓN MENSUAL DE LAS OBRAS CONTENIDAS EN EL PROYECTO</h5>
         <p style="text-align: center; font-size: 9px; margin-bottom: 10px;">(En Bolívares)</p>
         
-        <div style="border: 1px solid #000; padding: 6px; font-size: 10px; margin-bottom: 10px; background-color: #f8f9fa;">
-            <div><strong>(1) CÓDIGO PRESUPUESTARIO DEL ÓRGANO:</strong> ______________ &nbsp;&nbsp;&nbsp; <strong>DENOMINACIÓN:</strong> ________________________________</div>
-            <div style="margin-top: 4px;"><strong>(2) PROYECTO:</strong> ________________________________________________________________________________</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    tabla_completa = f"""
         <table class="table table-bordered tabla-onapre" style="width: 100%; border-collapse: collapse;">
             <thead style="background-color: #e2e8f0;">
                 <tr>
@@ -180,7 +214,7 @@ with tab4:
                 </tr>
             </thead>
             <tbody>
-                {filas_html}
+                {filas_obras_html}
             </tbody>
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f1f5f9;">
@@ -197,7 +231,139 @@ with tab4:
             </tfoot>
         </table>
     </div>
-    """
-    
-    st.markdown(tabla_completa, unsafe_allow_html=True)
-    st.info("💡 **Listo:** Las filas vacías o nulas se ignoran automáticamente para evitar errores. Presiona **Ctrl + P** para exportarlo como PDF.")
+    """, unsafe_allow_html=True)
+
+    # ==========================
+    # 2. RENDER FORMULARIO 0602
+    # ==========================
+    df_partidas = st.session_state.df_partidas
+    filas_partidas_html = ""
+    tot_credito, tot_p_mes_f, tot_co_mes_f, tot_ca_mes_f = 0, 0, 0, 0
+    tot_p_acum_f, tot_co_acum_f, tot_ca_acum_f = 0, 0, 0
+
+    for index, row in df_partidas.iterrows():
+        denominacion = row.get("Denominación", "")
+        if not denominacion or pd.isna(denominacion) or str(denominacion).strip() in ["None", ""]:
+            continue
+            
+        partida = row.get("Partida", "")
+        generica = row.get("Genérica", "")
+        especifica = row.get("Específica", "")
+        sesp = row.get("Sub-Esp", "")
+        conc = row.get("Conc", "")
+        
+        credito = limpiar_val(row.get("Crédito Anual (Bs.)", 0))
+        p_mes_f = limpiar_val(row.get("Prog. Mes", 0))
+        co_mes_f = limpiar_val(row.get("Comp. Mes", 0))
+        ca_mes_f = limpiar_val(row.get("Caus. Mes", 0))
+        p_acum_f = limpiar_val(row.get("Prog. Acum.", 0))
+        co_acum_f = limpiar_val(row.get("Comp. Acum.", 0))
+        ca_acum_f = limpiar_val(row.get("Caus. Acum.", 0))
+        
+        var_abs_f = ca_acum_f - p_acum_f
+        var_rel_f = (var_abs_f / p_acum_f * 100) if p_acum_f > 0 else 0.0
+        
+        tot_credito += credito
+        tot_p_mes_f += p_mes_f
+        tot_co_mes_f += co_mes_f
+        tot_ca_mes_f += ca_mes_f
+        tot_p_acum_f += p_acum_f
+        tot_co_acum_f += co_acum_f
+        tot_ca_acum_f += ca_acum_f
+        
+        filas_partidas_html += f"""
+            <tr>
+                <td style="border: 1px solid #000; padding: 4px;">{partida}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{generica}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{especifica}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{sesp}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{conc}</td>
+                <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denominacion}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{credito:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{p_mes_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{co_mes_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{ca_mes_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{p_acum_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{co_acum_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{ca_acum_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{var_abs_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px;">{var_rel_f:.2f}%</td>
+            </tr>
+        """
+
+    tot_var_abs_f = tot_ca_acum_f - tot_p_acum_f
+    tot_var_rel_f = (tot_var_abs_f / tot_p_acum_f * 100) if tot_p_acum_f > 0 else 0.0
+
+    st.markdown("### Formato Oficial: 0602 (Financiero por Partidas)")
+    st.markdown(f"""
+    <div class="formato-onapre">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
+            <div>
+                <strong style="font-size: 11px;">REPÚBLICA BOLIVARIANA DE VENEZUELA</strong><br>
+                <small style="font-size: 9px;">MINISTERIO DEL PODER POPULAR DE ECONOMÍA Y FINANZAS</small><br>
+                <small style="font-size: 9px;">OFICINA NACIONAL DE PRESUPUESTO (ONAPRE)</small>
+            </div>
+            <div style="text-align: right;">
+                <span style="border: 1px solid #000; padding: 4px 8px; font-weight: bold; font-size: 11px;">Formulario: 0602</span>
+            </div>
+        </div>
+        
+        <h5 style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 2px;">EJECUCIÓN FINANCIERA MENSUAL POR PARTIDAS DE EGRESOS</h5>
+        <p style="text-align: center; font-size: 9px; margin-bottom: 10px;">(En Bolívares)</p>
+        
+        <table class="table table-bordered tabla-onapre" style="width: 100%; border-collapse: collapse;">
+            <thead style="background-color: #e2e8f0;">
+                <tr>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">PART.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">GEN.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">ESP.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">SESP.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">CONC.</th>
+                    <th rowspan="2" style="width: 20%; border: 1px solid #000; padding: 4px;">DENOMINACIÓN</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">CRÉDITO PRESUPUESTARIO</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 4px;">MES</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 4px;">ACUMULADO</th>
+                    <th colspan="2" style="border: 1px solid #000; padding: 4px;">VARIACIÓN ACUMULADA</th>
+                </tr>
+                <tr>
+                    <th style="border: 1px solid #000; padding: 4px;">PROG.</th>
+                    <th style="border: 1px solid #000; padding: 4px;">COMP.</th>
+                    <th style="border: 1px solid #000; padding: 4px;">CAUS.</th>
+                    <th style="border: 1px solid #000; padding: 4px;">PROG.</th>
+                    <th style="border: 1px solid #000; padding: 4px;">COMP.</th>
+                    <th style="border: 1px solid #000; padding: 4px;">CAUS.</th>
+                    <th style="border: 1px solid #000; padding: 4px;">ABSOLUTA</th>
+                    <th style="border: 1px solid #000; padding: 4px;">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {filas_partidas_html}
+            </tbody>
+            <tfoot>
+                <tr style="font-weight: bold; background-color: #f1f5f9;">
+                    <td colspan="6" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL PRESUPUESTO:</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_credito:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_p_mes_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_co_mes_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_ca_mes_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_p_acum_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_co_acum_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_ca_acum_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_var_abs_f:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{tot_var_rel_f:.2f}%</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
+
+    desv = st.session_state.get("desviacion_0602", "")
+    if desv:
+        st.markdown(f"""
+        <div class="formato-onapre" style="margin-top: 10px;">
+            <strong>Explicación de Desviaciones (Formulario 0602):</strong>
+            <p style="font-size: 10px; margin-top: 5px;">{desv}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.info("💡 **Impresión / PDF:** Presiona **Ctrl + P** en tu teclado para exportar los formularios oficiales adaptados a formato horizontal.")
