@@ -1,3 +1,86 @@
+import streamlit as st
+import pandas as pd
+
+st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide")
+
+st.title("Sistema de Gestión - Instructivo N° 06 (ONAPRE)")
+
+# Estilos CSS para el formato oficial e impresión
+st.markdown("""
+<style>
+@media print {
+    [data-testid="stSidebar"], .stButton, header, footer {
+        display: none !important;
+    }
+    @page {
+        size: letter landscape;
+        margin: 0.5cm;
+    }
+    body {
+        background: #fff !important;
+    }
+}
+.formato-onapre {
+    border: 2px solid #000;
+    padding: 15px;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    color: #000;
+    margin-bottom: 20px;
+}
+.tabla-onapre th, .tabla-onapre td {
+    border: 1px solid #000 !important;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 10px;
+    padding: 4px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 1. DECLARACIÓN DE LAS PESTAÑAS (DEBE IR ANTES DE USAR 'with tab...')
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🏗️ Formulario 0601 (Obras)",
+    "💰 Formulario 0602 (Financiero)",
+    "📈 Formulario 0603 (Físico)",
+    "📋 Resumen y Consolidado"
+])
+
+with tab1:
+    st.subheader("Formulario 0601: Carga y Ejecución Mensual de Obras")
+    st.markdown("Ingrese o edite la distribución y los montos ejecutados directamente en la tabla inferior:")
+
+    # Datos iniciales de ejemplo para el editor de tablas
+    if "df_obras" not in st.session_state:
+        st.session_state.df_obras = pd.DataFrame([
+            {
+                "Denominación de la Obra": "Construcción de Sede Principal",
+                "Prog. Mes": 10000.0,
+                "Comp. Mes": 9500.0,
+                "Caus. Mes": 9000.0,
+                "Prog. Acum.": 50000.0,
+                "Comp. Acum.": 48000.0,
+                "Caus. Acum.": 45000.0
+            }
+        ])
+
+    # Tabla interactiva (tipo Excel) para cargar la distribución
+    st.session_state.df_obras = st.data_editor(
+        st.session_state.df_obras, 
+        num_rows="dynamic", 
+        use_container_width=True,
+        key="editor_obras"
+    )
+
+with tab2:
+    st.subheader("Formulario 0602: Ejecución Financiera Mensual por Partidas")
+    st.markdown("Control de partidas, genéricas, específicas y subespecíficas (SIGECOF)")
+    st.text_area("Explicación de Desviaciones (Obligatorio si lo ejecutado difiere de lo programado)", key="desviacion_0602")
+
+with tab3:
+    st.subheader("Formulario 0603: Ejecución Física Mensual")
+    unidad_medida = st.text_input("Unidad Física de Medida", key="0603_UM")
+
 with tab4:
     st.subheader("Resumen e Impresión del Instructivo N° 06")
     st.markdown("---")
@@ -45,7 +128,6 @@ with tab4:
     tot_var_abs_acum = tot_ca_acum - tot_p_acum
     tot_var_rel_acum = (tot_var_abs_acum / tot_p_acum * 100) if tot_p_acum > 0 else 0.0
 
-    # Renderizado seguro por partes en Streamlit
     st.markdown("""
     <div class="formato-onapre">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
@@ -68,7 +150,6 @@ with tab4:
         </div>
     """, unsafe_allow_html=True)
 
-    # Tabla con los datos dinámicos
     tabla_completa = f"""
         <table class="table table-bordered tabla-onapre" style="width: 100%; border-collapse: collapse;">
             <thead style="background-color: #e2e8f0;">
@@ -110,4 +191,5 @@ with tab4:
     """
     
     st.markdown(tabla_completa, unsafe_allow_html=True)
-    st.info("💡 **Listo:** Ahora el formato se renderizará correctamente en HTML con los datos que cargaste en la primera pestaña.")
+    st.info("💡 **Listo:** Guarda el archivo en GitHub y tu aplicación correrá perfectamente sin errores.")
+       
