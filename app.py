@@ -1,42 +1,14 @@
+Eso pasa porque Streamlit interpretó la sangría del bloque de texto como código fuente en lugar de HTML visual. Para solucionarlo de forma definitiva y robusta, vamos a utilizar el componente nativo de HTML de Streamlit (components.html), el cual evita por completo que el texto se muestre como código.
+
+Reemplaza todo tu archivo app.py por esta versión corregida:
+Python
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide")
 
 st.title("Sistema de Gestión - Instructivo N° 06 (ONAPRE)")
-
-# Estilos CSS para el formato oficial e impresión
-st.markdown("""
-<style>
-@media print {
-    [data-testid="stSidebar"], .stButton, header, footer {
-        display: none !important;
-    }
-    @page {
-        size: letter landscape;
-        margin: 0.5cm;
-    }
-    body {
-        background: #fff !important;
-    }
-}
-.formato-onapre {
-    border: 2px solid #000;
-    padding: 15px;
-    background: #fff;
-    font-family: Arial, sans-serif;
-    color: #000;
-    margin-bottom: 20px;
-}
-.tabla-onapre th, .tabla-onapre td {
-    border: 1px solid #000 !important;
-    text-align: center;
-    vertical-align: middle;
-    font-size: 10px;
-    padding: 4px !important;
-}
-</style>
-""", unsafe_allow_html=True)
 
 # Declaración de pestañas principales
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -131,7 +103,7 @@ with tab4:
             return 0.0
 
     # ==========================
-    # 1. RENDER FORMULARIO 0601
+    # 1. DATOS FORMULARIO 0601
     # ==========================
     df_obras = st.session_state.df_obras
     filas_obras_html = ""
@@ -177,9 +149,8 @@ with tab4:
     tot_var_abs_acum = tot_ca_acum - tot_p_acum
     tot_var_rel_acum = (tot_var_abs_acum / tot_p_acum * 100) if tot_p_acum > 0 else 0.0
 
-    st.markdown("### Formato Oficial: 0601 (Obras)")
-    st.markdown(f"""
-    <div class="formato-onapre">
+    html_0601 = f"""
+    <div style="border: 2px solid #000; padding: 15px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
             <div>
                 <strong style="font-size: 11px;">REPÚBLICA BOLIVARIANA DE VENEZUELA</strong><br>
@@ -194,30 +165,30 @@ with tab4:
         <h5 style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 2px;">EJECUCIÓN MENSUAL DE LAS OBRAS CONTENIDAS EN EL PROYECTO</h5>
         <p style="text-align: center; font-size: 9px; margin-bottom: 10px;">(En Bolívares)</p>
         
-        <table class="table table-bordered tabla-onapre" style="width: 100%; border-collapse: collapse;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center;">
             <thead style="background-color: #e2e8f0;">
                 <tr>
-                    <th rowspan="2" style="width: 25%; border: 1px solid #000; padding: 4px;">(9) DENOMINACIÓN DE LA OBRA</th>
-                    <th colspan="3" style="border: 1px solid #000; padding: 4px;">(10) MES</th>
-                    <th colspan="3" style="border: 1px solid #000; padding: 4px;">(11) ACUMULADO</th>
-                    <th colspan="2" style="border: 1px solid #000; padding: 4px;">(12-13) VARIACIÓN ACUMULADA</th>
+                    <th rowspan="2" style="width: 25%; border: 1px solid #000; padding: 4px; font-size: 10px;">(9) DENOMINACIÓN DE LA OBRA</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 4px; font-size: 10px;">(10) MES</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 4px; font-size: 10px;">(11) ACUMULADO</th>
+                    <th colspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">(12-13) VARIACIÓN ACUMULADA</th>
                 </tr>
                 <tr>
-                    <th style="border: 1px solid #000; padding: 4px;">PROGRAMADO</th>
-                    <th style="border: 1px solid #000; padding: 4px;">COMPROMETIDO</th>
-                    <th style="border: 1px solid #000; padding: 4px;">CAUSADO</th>
-                    <th style="border: 1px solid #000; padding: 4px;">PROGRAMADO</th>
-                    <th style="border: 1px solid #000; padding: 4px;">COMPROMETIDO</th>
-                    <th style="border: 1px solid #000; padding: 4px;">CAUSADO</th>
-                    <th style="border: 1px solid #000; padding: 4px;">ABSOLUTA</th>
-                    <th style="border: 1px solid #000; padding: 4px;">%</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">PROGRAMADO</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">COMPROMETIDO</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">CAUSADO</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">PROGRAMADO</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">COMPROMETIDO</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">CAUSADO</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">ABSOLUTA</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">%</th>
                 </tr>
             </thead>
             <tbody>
                 {filas_obras_html}
             </tbody>
             <tfoot>
-                <tr style="font-weight: bold; background-color: #f1f5f9;">
+                <tr style="font-weight: bold; background-color: #f1f5f9; font-size: 10px;">
                     <td style="border: 1px solid #000; padding: 4px;">(14) TOTAL OBRAS</td>
                     <td style="border: 1px solid #000; padding: 4px;">{tot_p_mes:,.2f}</td>
                     <td style="border: 1px solid #000; padding: 4px;">{tot_c_mes:,.2f}</td>
@@ -231,10 +202,13 @@ with tab4:
             </tfoot>
         </table>
     </div>
-    """, unsafe_allow_html=True)
+    """
+
+    st.markdown("### Formato Oficial: 0601 (Obras)")
+    components.html(html_0601, height=350, scrolling=True)
 
     # ==========================
-    # 2. RENDER FORMULARIO 0602
+    # 2. DATOS FORMULARIO 0602
     # ==========================
     df_partidas = st.session_state.df_partidas
     filas_partidas_html = ""
@@ -273,30 +247,29 @@ with tab4:
         
         filas_partidas_html += f"""
             <tr>
-                <td style="border: 1px solid #000; padding: 4px;">{partida}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{generica}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{especifica}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{sesp}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{conc}</td>
-                <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denominacion}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{credito:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{p_mes_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{co_mes_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{ca_mes_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{p_acum_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{co_acum_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{ca_acum_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{var_abs_f:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{var_rel_f:.2f}%</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{partida}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{generica}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{especifica}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{sesp}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{conc}</td>
+                <td style="text-align: left; border: 1px solid #000; padding: 4px; font-size: 10px;">{denominacion}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{credito:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{p_mes_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{co_mes_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{ca_mes_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{p_acum_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{co_acum_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{ca_acum_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{var_abs_f:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 4px; font-size: 10px;">{var_rel_f:.2f}%</td>
             </tr>
         """
 
     tot_var_abs_f = tot_ca_acum_f - tot_p_acum_f
     tot_var_rel_f = (tot_var_abs_f / tot_p_acum_f * 100) if tot_p_acum_f > 0 else 0.0
 
-    st.markdown("### Formato Oficial: 0602 (Financiero por Partidas)")
-    st.markdown(f"""
-    <div class="formato-onapre">
+    html_0602 = f"""
+    <div style="border: 2px solid #000; padding: 15px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
             <div>
                 <strong style="font-size: 11px;">REPÚBLICA BOLIVARIANA DE VENEZUELA</strong><br>
@@ -311,36 +284,36 @@ with tab4:
         <h5 style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 2px;">EJECUCIÓN FINANCIERA MENSUAL POR PARTIDAS DE EGRESOS</h5>
         <p style="text-align: center; font-size: 9px; margin-bottom: 10px;">(En Bolívares)</p>
         
-        <table class="table table-bordered tabla-onapre" style="width: 100%; border-collapse: collapse;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center;">
             <thead style="background-color: #e2e8f0;">
                 <tr>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">PART.</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">GEN.</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">ESP.</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">SESP.</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">CONC.</th>
-                    <th rowspan="2" style="width: 20%; border: 1px solid #000; padding: 4px;">DENOMINACIÓN</th>
-                    <th rowspan="2" style="border: 1px solid #000; padding: 4px;">CRÉDITO PRESUPUESTARIO</th>
-                    <th colspan="3" style="border: 1px solid #000; padding: 4px;">MES</th>
-                    <th colspan="3" style="border: 1px solid #000; padding: 4px;">ACUMULADO</th>
-                    <th colspan="2" style="border: 1px solid #000; padding: 4px;">VARIACIÓN ACUMULADA</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">PART.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">GEN.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">ESP.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">SESP.</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">CONC.</th>
+                    <th rowspan="2" style="width: 20%; border: 1px solid #000; padding: 4px; font-size: 10px;">DENOMINACIÓN</th>
+                    <th rowspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">CRÉDITO PRESUPUESTARIO</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 4px; font-size: 10px;">MES</th>
+                    <th colspan="3" style="border: 1px solid #000; padding: 4px; font-size: 10px;">ACUMULADO</th>
+                    <th colspan="2" style="border: 1px solid #000; padding: 4px; font-size: 10px;">VARIACIÓN ACUMULADA</th>
                 </tr>
                 <tr>
-                    <th style="border: 1px solid #000; padding: 4px;">PROG.</th>
-                    <th style="border: 1px solid #000; padding: 4px;">COMP.</th>
-                    <th style="border: 1px solid #000; padding: 4px;">CAUS.</th>
-                    <th style="border: 1px solid #000; padding: 4px;">PROG.</th>
-                    <th style="border: 1px solid #000; padding: 4px;">COMP.</th>
-                    <th style="border: 1px solid #000; padding: 4px;">CAUS.</th>
-                    <th style="border: 1px solid #000; padding: 4px;">ABSOLUTA</th>
-                    <th style="border: 1px solid #000; padding: 4px;">%</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">PROG.</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">COMP.</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">CAUS.</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">PROG.</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">COMP.</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">CAUS.</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">ABSOLUTA</th>
+                    <th style="border: 1px solid #000; padding: 4px; font-size: 10px;">%</th>
                 </tr>
             </thead>
             <tbody>
                 {filas_partidas_html}
             </tbody>
             <tfoot>
-                <tr style="font-weight: bold; background-color: #f1f5f9;">
+                <tr style="font-weight: bold; background-color: #f1f5f9; font-size: 10px;">
                     <td colspan="6" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL PRESUPUESTO:</td>
                     <td style="border: 1px solid #000; padding: 4px;">{tot_credito:,.2f}</td>
                     <td style="border: 1px solid #000; padding: 4px;">{tot_p_mes_f:,.2f}</td>
@@ -355,15 +328,16 @@ with tab4:
             </tfoot>
         </table>
     </div>
-    """, unsafe_allow_html=True)
+    """
+
+    st.markdown("### Formato Oficial: 0602 (Financiero por Partidas)")
+    components.html(html_0602, height=400, scrolling=True)
 
     desv = st.session_state.get("desviacion_0602", "")
     if desv:
         st.markdown(f"""
-        <div class="formato-onapre" style="margin-top: 10px;">
+        <div style="border: 1px solid #000; padding: 10px; background: #fff; color: #000; margin-top: 10px;">
             <strong>Explicación de Desviaciones (Formulario 0602):</strong>
             <p style="font-size: 10px; margin-top: 5px;">{desv}</p>
         </div>
         """, unsafe_allow_html=True)
-
-    st.info("💡 **Impresión / PDF:** Presiona **Ctrl + P** en tu teclado para exportar los formularios oficiales adaptados a formato horizontal.")
