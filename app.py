@@ -38,7 +38,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 1. DECLARACIÓN DE LAS PESTAÑAS (DEBE IR ANTES DE USAR 'with tab...')
+# Declaración de pestañas
 tab1, tab2, tab3, tab4 = st.tabs([
     "🏗️ Formulario 0601 (Obras)",
     "💰 Formulario 0602 (Financiero)",
@@ -50,7 +50,6 @@ with tab1:
     st.subheader("Formulario 0601: Carga y Ejecución Mensual de Obras")
     st.markdown("Ingrese o edite la distribución y los montos ejecutados directamente en la tabla inferior:")
 
-    # Datos iniciales de ejemplo para el editor de tablas
     if "df_obras" not in st.session_state:
         st.session_state.df_obras = pd.DataFrame([
             {
@@ -64,7 +63,6 @@ with tab1:
             }
         ])
 
-    # Tabla interactiva (tipo Excel) para cargar la distribución
     st.session_state.df_obras = st.data_editor(
         st.session_state.df_obras, 
         num_rows="dynamic", 
@@ -85,7 +83,6 @@ with tab4:
     st.subheader("Resumen e Impresión del Instructivo N° 06")
     st.markdown("---")
     
-    # Recoger los datos del editor de la pestaña 1
     df_actual = st.session_state.df_obras
     
     filas_html = ""
@@ -93,14 +90,26 @@ with tab4:
     tot_p_acum, tot_c_acum, tot_ca_acum = 0, 0, 0
     
     for index, row in df_actual.iterrows():
-        p_mes = float(row["Prog. Mes"])
-        co_mes = float(row["Comp. Mes"])
-        ca_mes = float(row["Caus. Mes"])
-        p_acum = float(row["Prog. Acum."])
-        co_acum = float(row["Comp. Acum."])
-        ca_acum = float(row["Caus. Acum."])
+        # Validar si el nombre de la obra está vacío o es nulo para omitir filas vacías
+        nombre_obra = row["Denominación de la Obra"]
+        if not nombre_obra or pd.isna(nombre_obra) or str(nombre_obra).strip() == "None":
+            continue
+            
+        # Función auxiliar segura para convertir valores a float evitando errores por celdas vacías
+        def limpiar_val(val):
+            try:
+                return float(val) if val is not None and not pd.isna(val) else 0.0
+            except:
+                return 0.0
+
+        p_mes = limpiar_val(row["Prog. Mes"])
+        co_mes = limpiar_val(row["Comp. Mes"])
+        ca_mes = limpiar_val(row["Caus. Mes"])
+        p_acum = limpiar_val(row["Prog. Acum."])
+        co_acum = limpiar_val(row["Comp. Acum."])
+        ca_acum = limpiar_val(row["Caus. Acum."])
         
-        # Fórmulas de Variación Oficial ONAPRE
+        # Fórmulas Oficiales ONAPRE
         var_abs = ca_acum - p_acum
         var_rel = (var_abs / p_acum * 100) if p_acum > 0 else 0.0
         
@@ -113,7 +122,7 @@ with tab4:
         
         filas_html += f"""
             <tr>
-                <td style="text-align: left; border: 1px solid #000; padding: 4px;">{row["Denominación de la Obra"]}</td>
+                <td style="text-align: left; border: 1px solid #000; padding: 4px;">{nombre_obra}</td>
                 <td style="border: 1px solid #000; padding: 4px;">{p_mes:,.2f}</td>
                 <td style="border: 1px solid #000; padding: 4px;">{co_mes:,.2f}</td>
                 <td style="border: 1px solid #000; padding: 4px;">{ca_mes:,.2f}</td>
@@ -191,5 +200,4 @@ with tab4:
     """
     
     st.markdown(tabla_completa, unsafe_allow_html=True)
-    st.info("💡 **Listo:** Guarda el archivo en GitHub y tu aplicación correrá perfectamente sin errores.")
-       
+    st.info("💡 **Listo:** Las filas vacías o nulas se ignoran automáticamente para evitar errores. Presiona **Ctrl + P** para exportarlo como PDF.")
