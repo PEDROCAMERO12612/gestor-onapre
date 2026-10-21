@@ -4,6 +4,16 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide")
 
+# Botón para reiniciar datos en la barra lateral
+with st.sidebar:
+    st.header("⚙️ Opciones de Control")
+    if st.button("🔄 Reiniciar / Borrar Datos"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
+    st.markdown("---")
+    st.info("💡 **Impresión única:** En la pestaña 'Resumen', presiona **Ctrl + P** para exportar todos los formularios consolidados en un solo archivo PDF.")
+
 st.title("Sistema de Gestión - Instructivo N° 06 (ONAPRE)")
 
 # Declaración de pestañas principales
@@ -41,10 +51,13 @@ with tab1:
 with tab2:
     st.subheader("Formulario 0602: Distribución Presupuestaria y Ejecución Financiera (SIGECOF)")
     st.markdown("""
-    Cargue o edite las partidas presupuestarias anuales (Créditos, Programado y Ejecutado) correspondientes a su unidad ejecutora.  
-    *💡 **Nota:** Puede agregar nuevas filas al final o borrar filas haciendo clic en el selector de fila y presionando `Supr`.*
+    Cargue su presupuesto anual mediante un archivo de Excel o edítelo directamente en la tabla inferior.
     """)
 
+    # Componente para cargar archivo Excel
+    archivo_subido = st.file_uploader("📂 Subir Archivo de Distribución Presupuestaria (Excel .xlsx)", type=["xlsx"])
+
+    # Inicializar datos base si no existen en session_state
     if "df_partidas" not in st.session_state:
         st.session_state.df_partidas = pd.DataFrame([
             {
@@ -63,6 +76,17 @@ with tab2:
             }
         ])
 
+    # Si el usuario sube un archivo Excel, reemplazamos o actualizamos los datos
+    if archivo_subido is not None:
+        try:
+            df_excel = pd.read_excel(archivo_subido)
+            st.session_state.df_partidas = df_excel
+            st.success("✅ ¡Archivo de Excel cargado y procesado exitosamente!")
+        except Exception as e:
+            st.error(f"❌ Error al leer el archivo Excel: {e}")
+
+    st.markdown("---")
+    st.markdown("**Edición manual de partidas y montos:**")
     st.session_state.df_partidas = st.data_editor(
         st.session_state.df_partidas,
         num_rows="dynamic",
@@ -146,7 +170,7 @@ with tab4:
     tot_var_rel_acum = (tot_var_abs_acum / tot_p_acum * 100) if tot_p_acum > 0 else 0.0
 
     html_0601 = f"""
-    <div style="border: 2px solid #000; padding: 15px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px;">
+    <div style="border: 2px solid #000; padding: 15px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 30px; page-break-after: always;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
             <div>
                 <strong style="font-size: 11px;">REPÚBLICA BOLIVARIANA DE VENEZUELA</strong><br>
@@ -199,9 +223,6 @@ with tab4:
         </table>
     </div>
     """
-
-    st.markdown("### Formato Oficial: 0601 (Obras)")
-    components.html(html_0601, height=350, scrolling=True)
 
     # ==========================
     # 2. DATOS FORMULARIO 0602
@@ -265,7 +286,7 @@ with tab4:
     tot_var_rel_f = (tot_var_abs_f / tot_p_acum_f * 100) if tot_p_acum_f > 0 else 0.0
 
     html_0602 = f"""
-    <div style="border: 2px solid #000; padding: 15px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px;">
+    <div style="border: 2px solid #000; padding: 15px; background: #fff; font-family: Arial, sans-serif; color: #000; margin-bottom: 20px; page-break-after: always;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px;">
             <div>
                 <strong style="font-size: 11px;">REPÚBLICA BOLIVARIANA DE VENEZUELA</strong><br>
@@ -326,14 +347,33 @@ with tab4:
     </div>
     """
 
-    st.markdown("### Formato Oficial: 0602 (Financiero por Partidas)")
-    components.html(html_0602, height=400, scrolling=True)
-
     desv = st.session_state.get("desviacion_0602", "")
+    html_desv = ""
     if desv:
-        st.markdown(f"""
+        html_desv = f"""
         <div style="border: 1px solid #000; padding: 10px; background: #fff; color: #000; margin-top: 10px;">
             <strong>Explicación de Desviaciones (Formulario 0602):</strong>
             <p style="font-size: 10px; margin-top: 5px;">{desv}</p>
         </div>
-        """, unsafe_allow_html=True)
+        """
+
+    html_consolidado_total = f"""
+    <html>
+    <head>
+        <style>
+            @media print {{
+                @page {{ size: letter landscape; margin: 0.5cm; }}
+                body {{ background: #fff !important; }}
+            }}
+        </style>
+    </head>
+    <body>
+        {html_0601}
+        {html_0602}
+        {html_desv}
+    </body>
+    </html>
+    """
+
+    st.markdown("### Vista Consolidada de Formularios Oficiales (0601 y 0602)")
+    components.html(html_consolidado_total, height=750, scrolling=True)
