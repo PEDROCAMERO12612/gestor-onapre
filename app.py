@@ -17,7 +17,7 @@ with st.sidebar:
     fecha_reporte = st.text_input("Fecha de Emisión", value="31/07/2026", key="fec_rep")
     
     st.markdown("---")
-    st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', presiona **Ctrl + P** para guardar los 4 formatos juntos en orientación horizontal.")
+    st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', usa el botón de descarga o presiona Ctrl + P en la vista limpia para guardar los 4 formatos en horizontal.")
 
 # Botón de reinicio principal
 col_tit, col_btn = st.columns([4, 1])
@@ -192,7 +192,6 @@ with tab4:
 with tab5:
     st.subheader("Resumen Consolidado e Impresión Completa")
     st.markdown("---")
-    st.info("💡 Presiona **Ctrl + P** en tu teclado. Los 4 formatos se guardarán en un solo PDF horizontal con páginas independientes.")
 
     def limpiar_val(val):
         try:
@@ -254,7 +253,6 @@ with tab5:
         """
 
     html_f1 = f"""
-    <div class="hoja-formato">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
             <div><strong>FECHA:</strong> {f_rep}</div>
@@ -302,10 +300,9 @@ with tab5:
             </tfoot>
         </table>
         {html_firmas}
-    </div>
     """
 
-    # 2. FORMATO 2: FINANCIERA POR PARTIDAS DE EGRESOS (IMAGEN ADJUNTA)
+    # 2. FORMATO 2: FINANCIERA POR PARTIDAS DE EGRESOS
     df_part = st.session_state.df_partidas
     filas_part_html = ""
     tot_cred, tot_pm_p, tot_cm_p, tot_cam_p, tot_pa_p, tot_ca_p, tot_caa_p = 0, 0, 0, 0, 0, 0, 0
@@ -352,7 +349,6 @@ with tab5:
     tot_v_rel = (tot_v_abs / tot_pa_p * 100) if tot_pa_p > 0 else 0.0
 
     html_f2 = f"""
-    <div class="hoja-formato">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
             <div><strong>FECHA:</strong> {f_rep}</div>
@@ -404,7 +400,6 @@ with tab5:
             </tfoot>
         </table>
         {html_firmas}
-    </div>
     """
 
     # 3. FORMATO 3: EJECUCIÓN FÍSICA PROYECTOS
@@ -442,7 +437,6 @@ with tab5:
         """
 
     html_f3 = f"""
-    <div class="hoja-formato">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
             <div><strong>FECHA:</strong> {f_rep}</div>
@@ -488,7 +482,6 @@ with tab5:
             </tfoot>
         </table>
         {html_firmas}
-    </div>
     """
 
     # 4. FORMATO 4: CUADRO ANEXO FÍSICO
@@ -510,7 +503,6 @@ with tab5:
         """
 
     html_f4 = f"""
-    <div class="hoja-formato" style="page-break-after: avoid;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
             <div><strong>UNIDAD:</strong> {u_eje}</div>
             <div><strong>MES:</strong> {m_rep}</div>
@@ -535,27 +527,33 @@ with tab5:
             </tfoot>
         </table>
         {html_firmas}
-    </div>
     """
 
-    # Estilos CSS de impresión horizontal y separación por páginas
+    # Estructura HTML consolidada unificada con clases y saltos de página estrictos
     html_consolidado = f"""
     <html>
     <head>
+        <meta charset="utf-8">
         <style>
             @media print {{
                 @page {{
-                    size: letter landscape;
-                    margin: 0.5cm;
+                    size: letter landscape !important;
+                    margin: 0.5cm !important;
                 }}
                 body {{
                     background: #fff !important;
-                    margin: 0;
-                    padding: 0;
+                    -webkit-print-color-adjust: exact;
                 }}
                 .hoja-formato {{
+                    page-break-before: always !important;
                     page-break-after: always !important;
+                    break-before: page !important;
                     break-after: page !important;
+                    display: block !important;
+                }}
+                .hoja-formato:first-of-type {{
+                    page-break-before: avoid !important;
+                    break-before: avoid !important;
                 }}
             }}
             .hoja-formato {{
@@ -564,19 +562,30 @@ with tab5:
                 background: #fff;
                 font-family: Arial, sans-serif;
                 color: #000;
-                margin-bottom: 30px;
+                margin-bottom: 40px;
                 box-sizing: border-box;
+                width: 100%;
             }}
         </style>
     </head>
     <body>
-        {html_f1}
-        {html_f2}
-        {html_f3}
-        {html_f4}
+        <div class="hoja-formato">{html_f1}</div>
+        <div class="hoja-formato">{html_f2}</div>
+        <div class="hoja-formato">{html_f3}</div>
+        <div class="hoja-formato">{html_f4}</div>
     </body>
     </html>
     """
 
-    st.markdown("### Vista Consolidada de los 4 Formatos Oficiales (Vista Previa Horizontal)")
+    st.info("💡 **Método infalible para el PDF horizontal:** Haz clic en el botón de abajo para **Descargar el Documento Completo**, ábrelo en tu navegador y presiona **Ctrl + P** para guardar tus 4 páginas independientes perfectamente adaptadas.")
+
+    st.download_button(
+        label="📥 Descargar / Guardar Documento Completo (HTML para Impresión)",
+        data=html_consolidado,
+        file_name="Instructivo_ONAPRE_06_Consolidado.html",
+        mime="text/html",
+        type="primary"
+    )
+
+    st.markdown("### Vista Previa en Pantalla")
     components.html(html_consolidado, height=900, scrolling=True)
