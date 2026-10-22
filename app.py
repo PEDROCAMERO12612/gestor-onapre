@@ -17,7 +17,7 @@ with st.sidebar:
     fecha_reporte = st.text_input("Fecha de Emisión", value="31/07/2026", key="fec_rep")
     
     st.markdown("---")
-    st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', usa el botón de descarga o presiona Ctrl + P en la vista limpia para guardar los 4 formatos en horizontal.")
+    st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', usa el botón de descarga para guardar los 4 formatos en horizontal.")
 
 # Botón de reinicio principal
 col_tit, col_btn = st.columns([4, 1])
@@ -90,19 +90,24 @@ with tab2:
                 "Crédito Anual": 40266.00,
                 "Prog. Mes": 5000.00, "Comp. Mes": 0.00, "Caus. Mes": 0.00,
                 "Prog. Acum.": 20000.00, "Comp. Acum.": 0.00, "Caus. Acum.": 0.00
-            },
-            {
-                "Partida": "4.03", "Genérica": "09", "Específica": "01", "Sub-Esp": "00", "Conc": "200",
-                "Denominación": "Viáticos y pasajes dentro del país", 
-                "Crédito Anual": 12437.00,
-                "Prog. Mes": 2000.00, "Comp. Mes": 0.00, "Caus. Mes": 0.00,
-                "Prog. Acum.": 6000.00, "Comp. Acum.": 0.00, "Caus. Acum.": 0.00
             }
         ])
 
     if archivo_partidas is not None:
         try:
-            st.session_state.df_partidas = pd.read_excel(archivo_partidas)
+            # Leemos sin header fijo y reasignamos las columnas por posición para evitar errores de nombres
+            df_temp = pd.read_excel(archivo_partidas, header=None)
+            columnas_esperadas = [
+                "Partida", "Genérica", "Específica", "Sub-Esp", "Conc", 
+                "Denominación", "Crédito Anual", "Prog. Mes", "Comp. Mes", 
+                "Caus. Mes", "Prog. Acum.", "Comp. Acum.", "Caus. Acum."
+            ]
+            if len(df_temp.columns) >= len(columnas_esperadas):
+                df_temp = df_temp.iloc[:, :len(columnas_esperadas)]
+                df_temp.columns = columnas_esperadas
+                st.session_state.df_partidas = df_temp
+            else:
+                st.session_state.df_partidas = pd.read_excel(archivo_partidas)
             st.success("✅ Partidas cargadas con éxito.")
         except Exception as e:
             st.error(f"❌ Error al leer archivo: {e}")
@@ -164,11 +169,6 @@ with tab4:
                 "Unidad": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"),
                 "N°": 1,
                 "Operación / Actividad": "PLANIFICACION Y SUPERVISION DE ACTIVIDADES CIVICO-MILITARES"
-            },
-            {
-                "Unidad": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"),
-                "N°": 1,
-                "Operación / Actividad": "MANTENIMIENTO Y SEGURIDAD DE INSTALACIONES Y EQUIPOS"
             }
         ])
 
@@ -327,21 +327,21 @@ with tab5:
 
         filas_part_html += f"""
             <tr>
-                <td style="border: 1px solid #000; padding: 3px;">{row.get("Partida", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{row.get("Genérica", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{row.get("Específica", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{row.get("Sub-Esp", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{row.get("Conc", "")}</td>
-                <td style="text-align: left; border: 1px solid #000; padding: 3px;">{den}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{cred:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{p_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{c_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{ca_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{p_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{c_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{ca_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{var_abs:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{var_rel:.1f}%</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Partida", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Genérica", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Específica", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Sub-Esp", "")}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Conc", "")}</td>
+                <td style="text-align: left; border: 1px solid #000; padding: 3px; font-size: 7px; width: 20%;">{den}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{cred:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_m:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_m:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_m:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_a:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_a:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_a:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_abs:,.2f}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_rel:.1f}%</td>
             </tr>
         """
 
@@ -387,15 +387,15 @@ with tab5:
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f1f5f9;">
                     <td colspan="6" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL PRESUPUESTO:</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_cred:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_pm_p:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_cm_p:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_cam_p:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_pa_p:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_ca_p:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_caa_p:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_v_abs:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{tot_v_rel:.1f}%</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_cred:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_pm_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_cm_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_cam_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_pa_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_ca_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_caa_p:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_v_abs:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_v_rel:.1f}%</td>
                 </tr>
             </tfoot>
         </table>
