@@ -48,15 +48,10 @@ with tab1:
     archivo_fin = st.file_uploader("📂 Cargar Excel (Ejecución Financiera Proyectos)", type=["xlsx"], key="up_fin")
 
     if "df_financiera" not in st.session_state:
-        st.session_state.df_financiera = pd.DataFrame([
-            {
-                "SIPES": "07815", "Ppto.": 29884, 
-                "Denominación": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"), 
-                "Prog. Mensual": 2655226.00, "Prog. Acumulado": 15931356.00,
-                "Ejec. Mensual Comprometido": 0.00, "Ejec. Mensual Causado": 0.00,
-                "Ejec. Acumulado Comprometido": 0.00, "Ejec. Acumulado Causado": 0.00,
-                "Unidad Responsable": st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
-            }
+        st.session_state.df_financiera = pd.DataFrame(columns=[
+            "SIPES", "Ppto.", "Denominación", "Prog. Mensual", "Prog. Acumulado",
+            "Ejec. Mensual Comprometido", "Ejec. Mensual Causado",
+            "Ejec. Acumulado Comprometido", "Ejec. Acumulado Causado", "Unidad Responsable"
         ])
 
     if archivo_fin is not None:
@@ -78,24 +73,20 @@ with tab1:
 # ==========================================
 with tab2:
     st.subheader("Formulario 2: Ejecución Financiera Mensual por Partidas de Egresos")
-    st.markdown("Cargue un archivo de Excel o detalle el desglose por clasificador presupuestario (SIGECOF):")
+    st.markdown("Cargue un archivo de Excel con su distribución de partidas:")
 
     archivo_partidas = st.file_uploader("📂 Cargar Excel (Ejecución por Partidas)", type=["xlsx"], key="up_part")
 
+    # Inicializamos vacío para que no cargue datos inventados por defecto
     if "df_partidas" not in st.session_state:
-        st.session_state.df_partidas = pd.DataFrame([
-            {
-                "Partida": "4.02", "Genérica": "01", "Específica": "01", "Sub-Esp": "00", "Conc": "200",
-                "Denominación": "Alimentos y bebidas para personas", 
-                "Crédito Anual": 40266.00,
-                "Prog. Mes": 5000.00, "Comp. Mes": 0.00, "Caus. Mes": 0.00,
-                "Prog. Acum.": 20000.00, "Comp. Acum.": 0.00, "Caus. Acum.": 0.00
-            }
+        st.session_state.df_partidas = pd.DataFrame(columns=[
+            "Partida", "Genérica", "Específica", "Sub-Esp", "Conc", 
+            "Denominación", "Crédito Anual", "Prog. Mes", "Comp. Mes", 
+            "Caus. Mes", "Prog. Acum.", "Comp. Acum.", "Caus. Acum."
         ])
 
     if archivo_partidas is not None:
         try:
-            # Leemos sin header fijo y reasignamos las columnas por posición para evitar errores de nombres
             df_temp = pd.read_excel(archivo_partidas, header=None)
             columnas_esperadas = [
                 "Partida", "Genérica", "Específica", "Sub-Esp", "Conc", 
@@ -108,7 +99,7 @@ with tab2:
                 st.session_state.df_partidas = df_temp
             else:
                 st.session_state.df_partidas = pd.read_excel(archivo_partidas)
-            st.success("✅ Partidas cargadas con éxito.")
+            st.success("✅ Partidas cargadas con éxito desde su archivo.")
         except Exception as e:
             st.error(f"❌ Error al leer archivo: {e}")
 
@@ -129,15 +120,10 @@ with tab3:
     archivo_fis = st.file_uploader("📂 Cargar Excel (Ejecución Física)", type=["xlsx"], key="up_fis")
 
     if "df_fisica_proyectos" not in st.session_state:
-        st.session_state.df_fisica_proyectos = pd.DataFrame([
-            {
-                "SIPES": "07815", "Ppto.": 29884, 
-                "Denominación": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"), 
-                "Unidad de Medida": "OPERACIONES MILITARES", 
-                "Meta Prog. Mensual": 3.0, "Meta Prog. Acumulado": 3.0,
-                "Meta Ejec. Mensual": 3.0, "Meta Ejec. Acumulado": 3.0,
-                "Unidad Responsable": st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
-            }
+        st.session_state.df_fisica_proyectos = pd.DataFrame(columns=[
+            "SIPES", "Ppto.", "Denominación", "Unidad de Medida", 
+            "Meta Prog. Mensual", "Meta Prog. Acumulado", 
+            "Meta Ejec. Mensual", "Meta Ejec. Acumulado", "Unidad Responsable"
         ])
 
     if archivo_fis is not None:
@@ -164,12 +150,8 @@ with tab4:
     archivo_cua = st.file_uploader("📂 Cargar Excel (Cuadro Anexo)", type=["xlsx"], key="up_cua")
 
     if "df_cuadro_anexo" not in st.session_state:
-        st.session_state.df_cuadro_anexo = pd.DataFrame([
-            {
-                "Unidad": st.session_state.get("uni_eje", "UNIDAD EJECUTORA"),
-                "N°": 1,
-                "Operación / Actividad": "PLANIFICACION Y SUPERVISION DE ACTIVIDADES CIVICO-MILITARES"
-            }
+        st.session_state.df_cuadro_anexo = pd.DataFrame(columns=[
+            "Unidad", "N°", "Operación / Actividad"
         ])
 
     if archivo_cua is not None:
