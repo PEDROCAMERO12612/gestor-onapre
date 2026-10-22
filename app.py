@@ -566,8 +566,7 @@ with tab5:
         data=html_consolidado,
         file_name="Instructivo_ONAPRE_06_Consolidado.html",
         mime="text/html",
-        type="primary"
-    )
+        type="primary")
 
     st.markdown("### Vista Previa en Pantalla")
     components.html(html_consolidado, height=900, scrolling=True)
