@@ -4,7 +4,8 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide")
 
-st.title("Sistema de Gestión - Instructivo N° 06 (ONAPRE)")
+# Título actualizado según tu indicación
+st.title("SISTEMA DE GESTIÓN-INTRUCTIVO NRO 6-OFICINA DE PLANIFICACIÓN DEL EJÉRCITO BOLIVARIANO")
 
 # Configuración dinámica de Unidad y Datos Generales
 with st.sidebar:
@@ -531,7 +532,7 @@ with tab5:
         """
         formatos_html_activos.append(html_f4)
 
-    # Construcción dinámica del consolidado (solo muestra los formatos que tengan datos reales)
+    # Construcción dinámica del consolidado
     if formatos_html_activos:
         cuerpo_html = "".join([f'<div class="hoja-formato">{f}</div>' for f in formatos_html_activos])
     else:
