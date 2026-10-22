@@ -19,10 +19,10 @@ with st.sidebar:
     st.markdown("---")
     st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', usa el botón de descarga para guardar los 4 formatos en horizontal.")
 
-# Botón de reinicio principal
+# Botón de reinicio principal absoluto (Limpia toda la sesión y los editores)
 col_tit, col_btn = st.columns([4, 1])
 with col_btn:
-    if st.button("🔄 Reiniciar / Borrar Datos", type="primary"):
+    if st.button("🔄 Reiniciar / Borrar Todo", type="primary"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
@@ -77,7 +77,6 @@ with tab2:
 
     archivo_partidas = st.file_uploader("📂 Cargar Excel (Ejecución por Partidas)", type=["xlsx"], key="up_part")
 
-    # Inicializamos vacío para que no cargue datos inventados por defecto
     if "df_partidas" not in st.session_state:
         st.session_state.df_partidas = pd.DataFrame(columns=[
             "Partida", "Genérica", "Específica", "Sub-Esp", "Conc", 
@@ -87,18 +86,11 @@ with tab2:
 
     if archivo_partidas is not None:
         try:
-            df_temp = pd.read_excel(archivo_partidas, header=None)
-            columnas_esperadas = [
-                "Partida", "Genérica", "Específica", "Sub-Esp", "Conc", 
-                "Denominación", "Crédito Anual", "Prog. Mes", "Comp. Mes", 
-                "Caus. Mes", "Prog. Acum.", "Comp. Acum.", "Caus. Acum."
-            ]
-            if len(df_temp.columns) >= len(columnas_esperadas):
-                df_temp = df_temp.iloc[:, :len(columnas_esperadas)]
-                df_temp.columns = columnas_esperadas
-                st.session_state.df_partidas = df_temp
-            else:
-                st.session_state.df_partidas = pd.read_excel(archivo_partidas)
+            # Leemos directamente el Excel sin alterar filas
+            df_temp = pd.read_excel(archivo_partidas)
+            # Limpiamos columnas innecesarias o vacías si las hay
+            df_temp = df_temp.dropna(how="all")
+            st.session_state.df_partidas = df_temp
             st.success("✅ Partidas cargadas con éxito desde su archivo.")
         except Exception as e:
             st.error(f"❌ Error al leer archivo: {e}")
@@ -197,42 +189,43 @@ with tab5:
     """
 
     # 1. FORMATO 1: FINANCIERA PROYECTOS
-    df_fin = st.session_state.df_financiera
+    df_fin = st.session_state.get("df_financiera", pd.DataFrame())
     filas_fin_html = ""
     t_pm, t_pa, t_cm, t_cam, t_ca, t_caa = 0, 0, 0, 0, 0, 0
 
-    for _, row in df_fin.iterrows():
-        denom = row.get("Denominación", "")
-        if not denom or str(denom).strip() in ["None", ""]: continue
-        
-        pm = limpiar_val(row.get("Prog. Mensual", 0))
-        pa = limpiar_val(row.get("Prog. Acumulado", 0))
-        cm = limpiar_val(row.get("Ejec. Mensual Comprometido", 0))
-        cam = limpiar_val(row.get("Ejec. Mensual Causado", 0))
-        ca = limpiar_val(row.get("Ejec. Acumulado Comprometido", 0))
-        caa = limpiar_val(row.get("Ejec. Acumulado Causado", 0))
-        
-        v_comp = ((cm - pm) / pm * 100) if pm > 0 else -100.0
-        v_caus = ((cam - pm) / pm * 100) if pm > 0 else -100.0
+    if not df_fin.empty:
+        for _, row in df_fin.iterrows():
+            denom = row.get("Denominación", "")
+            if not denom or str(denom).strip() in ["None", ""]: continue
+            
+            pm = limpiar_val(row.get("Prog. Mensual", 0))
+            pa = limpiar_val(row.get("Prog. Acumulado", 0))
+            cm = limpiar_val(row.get("Ejec. Mensual Comprometido", 0))
+            cam = limpiar_val(row.get("Ejec. Mensual Causado", 0))
+            ca = limpiar_val(row.get("Ejec. Acumulado Comprometido", 0))
+            caa = limpiar_val(row.get("Ejec. Acumulado Causado", 0))
+            
+            v_comp = ((cm - pm) / pm * 100) if pm > 0 else -100.0
+            v_caus = ((cam - pm) / pm * 100) if pm > 0 else -100.0
 
-        t_pm += pm; t_pa += pa; t_cm += cm; t_cam += cam; t_ca += ca; t_caa += caa
+            t_pm += pm; t_pa += pa; t_cm += cm; t_cam += cam; t_ca += ca; t_caa += caa
 
-        filas_fin_html += f"""
-            <tr>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
-                <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{pm:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{pa:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{cm:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{cam:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{ca:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{caa:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{v_comp:.0f}%</td>
-                <td style="border: 1px solid #000; padding: 4px;">{v_caus:.0f}%</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
-            </tr>
-        """
+            filas_fin_html += f"""
+                <tr>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
+                    <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{pm:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{pa:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{cm:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{cam:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{ca:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{caa:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{v_comp:.0f}%</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{v_caus:.0f}%</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
+                </tr>
+            """
 
     html_f1 = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
@@ -285,47 +278,48 @@ with tab5:
     """
 
     # 2. FORMATO 2: FINANCIERA POR PARTIDAS DE EGRESOS
-    df_part = st.session_state.df_partidas
+    df_part = st.session_state.get("df_partidas", pd.DataFrame())
     filas_part_html = ""
     tot_cred, tot_pm_p, tot_cm_p, tot_cam_p, tot_pa_p, tot_ca_p, tot_caa_p = 0, 0, 0, 0, 0, 0, 0
 
-    for _, row in df_part.iterrows():
-        den = row.get("Denominación", "")
-        if not den or str(den).strip() in ["None", ""]: continue
+    if not df_part.empty:
+        for _, row in df_part.iterrows():
+            den = row.get("Denominación", "")
+            if not den or str(den).strip() in ["None", ""]: continue
 
-        cred = limpiar_val(row.get("Crédito Anual", 0))
-        p_m = limpiar_val(row.get("Prog. Mes", 0))
-        c_m = limpiar_val(row.get("Comp. Mes", 0))
-        ca_m = limpiar_val(row.get("Caus. Mes", 0))
-        p_a = limpiar_val(row.get("Prog. Acum.", 0))
-        c_a = limpiar_val(row.get("Comp. Acum.", 0))
-        ca_a = limpiar_val(row.get("Caus. Acum.", 0))
+            cred = limpiar_val(row.get("Crédito Anual", 0))
+            p_m = limpiar_val(row.get("Prog. Mes", 0))
+            c_m = limpiar_val(row.get("Comp. Mes", 0))
+            ca_m = limpiar_val(row.get("Caus. Mes", 0))
+            p_a = limpiar_val(row.get("Prog. Acum.", 0))
+            c_a = limpiar_val(row.get("Comp. Acum.", 0))
+            ca_a = limpiar_val(row.get("Caus. Acum.", 0))
 
-        var_abs = ca_a - p_a
-        var_rel = ((var_abs) / p_a * 100) if p_a > 0 else 0.0
+            var_abs = ca_a - p_a
+            var_rel = ((var_abs) / p_a * 100) if p_a > 0 else 0.0
 
-        tot_cred += cred; tot_pm_p += p_m; tot_cm_p += c_m; tot_cam_p += ca_m
-        tot_pa_p += p_a; tot_ca_p += c_a; tot_caa_p += ca_a
+            tot_cred += cred; tot_pm_p += p_m; tot_cm_p += c_m; tot_cam_p += ca_m
+            tot_pa_p += p_a; tot_ca_p += c_a; tot_caa_p += ca_a
 
-        filas_part_html += f"""
-            <tr>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Partida", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Genérica", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Específica", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Sub-Esp", "")}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Conc", "")}</td>
-                <td style="text-align: left; border: 1px solid #000; padding: 3px; font-size: 7px; width: 20%;">{den}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{cred:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_m:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_a:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_abs:,.2f}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_rel:.1f}%</td>
-            </tr>
-        """
+            filas_part_html += f"""
+                <tr>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Partida", "")}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Genérica", "")}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Específica", "")}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Sub-Esp", "")}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Conc", "")}</td>
+                    <td style="text-align: left; border: 1px solid #000; padding: 3px; font-size: 7px; width: 20%;">{den}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{cred:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_m:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_m:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_m:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_a:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_a:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_a:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_abs:,.2f}</td>
+                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_rel:.1f}%</td>
+                </tr>
+            """
 
     tot_v_abs = tot_caa_p - tot_pa_p
     tot_v_rel = (tot_v_abs / tot_pa_p * 100) if tot_pa_p > 0 else 0.0
@@ -385,38 +379,39 @@ with tab5:
     """
 
     # 3. FORMATO 3: EJECUCIÓN FÍSICA PROYECTOS
-    df_fis = st.session_state.df_fisica_proyectos
+    df_fis = st.session_state.get("df_fisica_proyectos", pd.DataFrame())
     filas_fis_html = ""
     tot_f_pm, tot_f_pa, tot_f_em, tot_f_ea = 0, 0, 0, 0
 
-    for _, row in df_fis.iterrows():
-        denom = row.get("Denominación", "")
-        if not denom or str(denom).strip() in ["None", ""]: continue
-        
-        pm = limpiar_val(row.get("Meta Prog. Mensual", 0))
-        pa = limpiar_val(row.get("Meta Prog. Acumulado", 0))
-        em = limpiar_val(row.get("Meta Ejec. Mensual", 0))
-        ea = limpiar_val(row.get("Meta Ejec. Acumulado", 0))
+    if not df_fis.empty:
+        for _, row in df_fis.iterrows():
+            denom = row.get("Denominación", "")
+            if not denom or str(denom).strip() in ["None", ""]: continue
+            
+            pm = limpiar_val(row.get("Meta Prog. Mensual", 0))
+            pa = limpiar_val(row.get("Meta Prog. Acumulado", 0))
+            em = limpiar_val(row.get("Meta Ejec. Mensual", 0))
+            ea = limpiar_val(row.get("Meta Ejec. Acumulado", 0))
 
-        tot_f_pm += pm; tot_f_pa += pa; tot_f_em += em; tot_f_ea += ea
+            tot_f_pm += pm; tot_f_pa += pa; tot_f_em += em; tot_f_ea += ea
 
-        filas_fis_html += f"""
-            <tr>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
-                <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad de Medida", "")}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{pm:,.0f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{pa:,.0f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{em:,.0f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">{ea:,.0f}</td>
-                <td style="border: 1px solid #000; padding: 4px;">0</td>
-                <td style="border: 1px solid #000; padding: 4px;">100%</td>
-                <td style="border: 1px solid #000; padding: 4px;">0</td>
-                <td style="border: 1px solid #000; padding: 4px;">100%</td>
-                <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
-            </tr>
-        """
+            filas_fis_html += f"""
+                <tr>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
+                    <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad de Medida", "")}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{pm:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{pa:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{em:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{ea:,.0f}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">0</td>
+                    <td style="border: 1px solid #000; padding: 4px;">100%</td>
+                    <td style="border: 1px solid #000; padding: 4px;">0</td>
+                    <td style="border: 1px solid #000; padding: 4px;">100%</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
+                </tr>
+            """
 
     html_f3 = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
@@ -467,22 +462,23 @@ with tab5:
     """
 
     # 4. FORMATO 4: CUADRO ANEXO FÍSICO
-    df_cuad = st.session_state.df_cuadro_anexo
+    df_cuad = st.session_state.get("df_cuadro_anexo", pd.DataFrame())
     filas_cuad_html = ""
     tot_n = 0
 
-    for _, row in df_cuad.iterrows():
-        op = row.get("Operación / Actividad", "")
-        if not op or str(op).strip() in ["None", ""]: continue
-        n = int(row.get("N°", 0))
-        tot_n += n
+    if not df_cuad.empty:
+        for _, row in df_cuad.iterrows():
+            op = row.get("Operación / Actividad", "")
+            if not op or str(op).strip() in ["None", ""]: continue
+            n = int(row.get("N°", 0))
+            tot_n += n
 
-        filas_cuad_html += f"""
-            <tr>
-                <td style="border: 1px solid #000; padding: 6px; text-align: center;">{n}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: left;">{op}</td>
-            </tr>
-        """
+            filas_cuad_html += f"""
+                <tr>
+                    <td style="border: 1px solid #000; padding: 6px; text-align: center;">{n}</td>
+                    <td style="border: 1px solid #000; padding: 6px; text-align: left;">{op}</td>
+                </tr>
+            """
 
     html_f4 = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
