@@ -1,598 +1,240 @@
 import streamlit as st
 import pandas as pd
-import streamlit.components.v1 as components
+import io
 
-st.set_page_config(page_title="Gestor ONAPRE - Instructivo N° 06", layout="wide")
+# -----------------------------------------------------------------------------
+# 1. Configuración de la Página para Adaptabilidad y Diseño Responsivo
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="Gestor ONAPRE - Instructivo N° 06",
+    page_icon="📊",
+    layout="wide",  # Permite que la aplicación aproveche todo el ancho de la pantalla
+    initial_sidebar_state="expanded"
+)
 
-# Título actualizado según tu indicación
-st.title("SISTEMA DE GESTIÓN-INTRUCTIVO NRO 6-OFICINA DE PLANIFICACIÓN DEL EJÉRCITO BOLIVARIANO")
+# Estilos CSS personalizados para optimizar la adaptabilidad y legibilidad
+st.markdown("""
+    <style>
+    /* Estilos para contenedores de tarjetas responsivas */
+    .metric-card {
+        background-color: #1e222d;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #2e3440;
+        margin-bottom: 10px;
+    }
+    /* Adaptabilidad de tablas */
+    .stDataFrame {
+        width: 100% !important;
+    }
+    /* Estilos de botones responsivos */
+    div.stButton > button {
+        width: 100%;
+        border-radius: 6px;
+        height: 3em;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Configuración dinámica de Unidad y Datos Generales
+# -----------------------------------------------------------------------------
+# 2. Encabezado Principal Institucional
+# -----------------------------------------------------------------------------
+st.title("SISTEMA DE GESTIÓN - INSTRUCTIVO NRO 6 - OFICINA DE PLANIFICACIÓN DEL EJÉRCITO BOLIVARIANO")
+st.caption("Herramienta simplificada para la carga, validación y cálculo automático de reportes mensuales para la ONAPRE.")
+
+# -----------------------------------------------------------------------------
+# 3. Panel Lateral (Sidebar) Responsivo: Parámetros del Órgano
+# -----------------------------------------------------------------------------
 with st.sidebar:
-    st.header("⚙️ Datos de la Unidad u Órgano")
-    
-    codigo_organo = st.text_input("Código del Órgano", value="008", key="cod_org")
-    denom_organo = st.text_input("Denominación del Órgano", value="MINISTERIO DEL PODER POPULAR PARA LA DEFENSA", key="den_org")
-    unidad_ejecutora = st.text_input("Unidad Ejecutora / Responsable", value="53 BRIGADA DE INFANTERÍA DE SELVA", key="uni_eje")
-    mes_reporte = st.text_input("Mes de Reporte", value="JULIO", key="mes_rep")
-    fecha_reporte = st.text_input("Fecha de Emisión", value="31/07/2026", key="fec_rep")
-    
-    st.markdown("---")
-    st.info("💡 **Impresión Unificada:** En la pestaña 'Resumen', usa el botón de descarga para guardar los formatos con datos en horizontal.")
+    st.header("1. Parámetros del Órgano")
+    codigo_presupuestario = st.text_input("Código Presupuestario", value="00150")
+    denominacion_organo = st.text_input("Denominación del Órgano", value="Ministerio del Poder Popular para la Defensa / Ejército Bolivariano")
+    mes_reporte = st.selectbox(
+        "Mes de Reporte",
+        ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    )
+    ano_fiscal = st.number_input("Año Fiscal", min_value=2020, max_value=2035, value=2026, step=1)
 
-# Botón de reinicio principal absoluto
-col_tit, col_btn = st.columns([4, 1])
-with col_btn:
-    if st.button("🔄 Reiniciar / Borrar Todo", type="primary"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
+# Inicializar estados de la sesión para almacenamiento temporal de tablas
+if "obras" not in st.session_state:
+    st.session_state.obras = []
 
-st.markdown("---")
+if "financiero" not in st.session_state:
+    st.session_state.financiero = []
 
-# Declaración de pestañas principales (4 Formatos Oficiales + Resumen)
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 1. Ejecución Financiera",
-    "💰 2. Financiera por Partidas",
-    "📈 3. Ejecución Física Proyectos",
-    "📋 4. Cuadro Anexo Física",
-    "🖨️ Resumen y Exportación PDF"
+if "fisico" not in st.session_state:
+    st.session_state.fisico = []
+
+# -----------------------------------------------------------------------------
+# 4. Cuerpo Principal con Pestañas Responsivas
+# -----------------------------------------------------------------------------
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🏗️ Formulario 0601 (Obras)",
+    "💰 Formulario 0602 (Financiero)",
+    "📈 Formulario 0603 (Físico)",
+    "📋 Resumen y Consolidado"
 ])
 
-# ==========================================
-# PESTAÑA 1: EJECUCIÓN FINANCIERA (PROYECTOS)
-# ==========================================
+# -----------------------------------------------------------------------------
+# PESTAÑA 1: Formulario 0601 (Obras)
+# -----------------------------------------------------------------------------
 with tab1:
-    st.subheader("Formulario 1: Ejecución Financiera Mensual de Proyectos / Acciones Centralizadas")
-    st.markdown("Cargue su archivo Excel o edite la tabla:")
+    st.subheader("Registro de Ejecución Financiera de Obras")
+    
+    # Filas con columnas adaptables (utilizan distribución flex de Streamlit)
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        accion_esp_obra = st.text_input("Acción Específica (Obra)", value="Ej. 01")
+    with col2:
+        denominacion_obra = st.text_input("Denominación de la Obra", placeholder="Nombre detallado de la obra...")
 
-    archivo_fin = st.file_uploader("📂 Cargar Excel (Ejecución Financiera Proyectos)", type=["xlsx"], key="up_fin")
+    col3, col4 = st.columns(2)
+    with col3:
+        monto_prog_obra = st.number_input("Monto Programado del Mes (V1)", min_value=0.0, format="%.2f")
+    with col4:
+        monto_ejec_obra = st.number_input("Monto Causado / Ejecutado del Mes (V2)", min_value=0.0, format="%.2f")
 
-    if "df_financiera" not in st.session_state:
-        st.session_state.df_financiera = pd.DataFrame(columns=[
-            "SIPES", "Ppto.", "Denominación", "Prog. Mensual", "Prog. Acumulado",
-            "Ejec. Mensual Comprometido", "Ejec. Mensual Causado",
-            "Ejec. Acumulado Comprometido", "Ejec. Acumulado Causado", "Unidad Responsable"
-        ])
+    if st.button("Agregar Obra al Reporte", key="btn_obra"):
+        if denominacion_obra.strip() != "":
+            st.session_state.obras.append({
+                "Acción Específica": accion_esp_obra,
+                "Denominación de la Obra": denominacion_obra,
+                "Programado (Bs.)": monto_prog_obra,
+                "Ejecutado (Bs.)": monto_ejec_obra
+            })
+            st.success(f"Obra '{denominacion_obra}' agregada correctamente.")
+        else:
+            st.warning("Por favor ingrese la denominación de la obra.")
 
-    if archivo_fin is not None:
-        try:
-            st.session_state.df_financiera = pd.read_excel(archivo_fin).dropna(how="all")
-            st.success("✅ Datos financieros cargados con éxito.")
-        except Exception as e:
-            st.error(f"❌ Error al leer archivo: {e}")
+    if st.session_state.obras:
+        st.write("---")
+        st.subheader("Obras Registradas")
+        df_obras = pd.DataFrame(st.session_state.obras)
+        st.dataframe(df_obras, use_container_width=True)
 
-    st.session_state.df_financiera = st.data_editor(
-        st.session_state.df_financiera, 
-        num_rows="dynamic", 
-        use_container_width=True,
-        key="editor_financiera"
-    )
-
-# ==========================================
-# PESTAÑA 2: FINANCIERA POR PARTIDAS DE EGRESOS
-# ==========================================
+# -----------------------------------------------------------------------------
+# PESTAÑA 2: Formulario 0602 (Financiero)
+# -----------------------------------------------------------------------------
 with tab2:
-    st.subheader("Formulario 2: Ejecución Financiera Mensual por Partidas de Egresos")
-    st.markdown("Cargue un archivo de Excel con su distribución de partidas:")
+    st.subheader("Ejecución Financiera Presupuestaria por Partidas")
+    
+    col_fin1, col_fin2 = st.columns([1, 2])
+    with col_fin1:
+        partida = st.text_input("Partida Presupuestaria", value="4.01.00.00.00")
+    with col_fin2:
+        denominacion_partida = st.text_input("Denominación de la Partida", value="Gastos de Personal")
 
-    archivo_partidas = st.file_uploader("📂 Cargar Excel (Ejecución por Partidas)", type=["xlsx"], key="up_part")
+    col_m1, col_m2, col_m3 = st.columns(3)
+    with col_m1:
+        monto_ley = st.number_input("Presupuesto Ley (Bs.)", min_value=0.0, format="%.2f")
+    with col_m2:
+        modificaciones = st.number_input("Modificaciones (Bs.)", format="%.2f")
+    with col_m3:
+        monto_compromiso = st.number_input("Compromisos (Bs.)", min_value=0.0, format="%.2f")
 
-    if "df_partidas" not in st.session_state:
-        st.session_state.df_partidas = pd.DataFrame(columns=[
-            "Partida", "Genérica", "Específica", "Sub-Esp", "Conc", 
-            "Denominación", "Crédito Anual", "Prog. Mes", "Comp. Mes", 
-            "Caus. Mes", "Prog. Acum.", "Comp. Acum.", "Caus. Acum."
-        ])
+    col_m4, col_m5 = st.columns(2)
+    with col_m4:
+        monto_causado = st.number_input("Monto Causado (Bs.)", min_value=0.0, format="%.2f")
+    with col_m5:
+        monto_pagado = st.number_input("Monto Pagado (Bs.)", min_value=0.0, format="%.2f")
 
-    if archivo_partidas is not None:
-        try:
-            df_temp = pd.read_excel(archivo_partidas).dropna(how="all")
-            st.session_state.df_partidas = df_temp
-            st.success("✅ Partidas cargadas con éxito desde su archivo.")
-        except Exception as e:
-            st.error(f"❌ Error al leer archivo: {e}")
+    if st.button("Guardar Registro Financiero", key="btn_fin"):
+        st.session_state.financiero.append({
+            "Partida": partida,
+            "Denominación": denominacion_partida,
+            "Presupuesto Ley": monto_ley,
+            "Modificaciones": modificaciones,
+            "Presupuesto Modificado": monto_ley + modificaciones,
+            "Compromiso": monto_compromiso,
+            "Causado": monto_causado,
+            "Pagado": monto_pagado
+        })
+        st.success(f"Partida {partida} registrada exitosamente.")
 
-    st.session_state.df_partidas = st.data_editor(
-        st.session_state.df_partidas, 
-        num_rows="dynamic", 
-        use_container_width=True,
-        key="editor_partidas"
-    )
+    if st.session_state.financiero:
+        st.write("---")
+        df_fin = pd.DataFrame(st.session_state.financiero)
+        st.dataframe(df_fin, use_container_width=True)
 
-# ==========================================
-# PESTAÑA 3: EJECUCIÓN FÍSICA PROYECTOS
-# ==========================================
+# -----------------------------------------------------------------------------
+# PESTAÑA 3: Formulario 0603 (Físico)
+# -----------------------------------------------------------------------------
 with tab3:
-    st.subheader("Formulario 3: Ejecución Física Mensual de los Proyectos del Órgano")
-    st.markdown("Detalle metas físicas programadas y ejecutadas:")
+    st.subheader("Control de Ejecución Física y Metas")
+    
+    col_fis1, col_fis2 = st.columns([1, 2])
+    with col_fis1:
+        unidad_medida = st.text_input("Unidad de Medida", value="Informe / Inspección")
+    with col_fis2:
+        meta_nombre = st.text_input("Denominación de la Meta", placeholder="Descripción de la meta física...")
 
-    archivo_fis = st.file_uploader("📂 Cargar Excel (Ejecución Física)", type=["xlsx"], key="up_fis")
+    col_fm1, col_fm2 = st.columns(2)
+    with col_fm1:
+        meta_prog = st.number_input("Meta Programada del Mes", min_value=0.0, format="%.2f")
+    with col_fm2:
+        meta_ejec = st.number_input("Meta Ejecutada del Mes", min_value=0.0, format="%.2f")
 
-    if "df_fisica_proyectos" not in st.session_state:
-        st.session_state.df_fisica_proyectos = pd.DataFrame(columns=[
-            "SIPES", "Ppto.", "Denominación", "Unidad de Medida", 
-            "Meta Prog. Mensual", "Meta Prog. Acumulado", 
-            "Meta Ejec. Mensual", "Meta Ejec. Acumulado", "Unidad Responsable"
-        ])
+    if st.button("Guardar Registro Físico", key="btn_fis"):
+        cumplimiento = (meta_ejec / meta_prog * 100) if meta_prog > 0 else 0.0
+        st.session_state.fisico.append({
+            "Unidad de Medida": unidad_medida,
+            "Denominación de la Meta": meta_nombre,
+            "Meta Programada": meta_prog,
+            "Meta Ejecutada": meta_ejec,
+            "% Cumplimiento": f"{cumplimiento:.2f}%"
+        })
+        st.success("Registro de meta física guardado.")
 
-    if archivo_fis is not None:
-        try:
-            st.session_state.df_fisica_proyectos = pd.read_excel(archivo_fis).dropna(how="all")
-            st.success("✅ Datos de ejecución física cargados con éxito.")
-        except Exception as e:
-            st.error(f"❌ Error al leer archivo: {e}")
+    if st.session_state.fisico:
+        st.write("---")
+        df_fis = pd.DataFrame(st.session_state.fisico)
+        st.dataframe(df_fis, use_container_width=True)
 
-    st.session_state.df_fisica_proyectos = st.data_editor(
-        st.session_state.df_fisica_proyectos, 
-        num_rows="dynamic", 
-        use_container_width=True,
-        key="editor_fisica_proyectos"
-    )
-
-# ==========================================
-# PESTAÑA 4: CUADRO ANEXO FÍSICO
-# ==========================================
+# -----------------------------------------------------------------------------
+# PESTAÑA 4: Resumen y Consolidado
+# -----------------------------------------------------------------------------
 with tab4:
-    st.subheader("Formulario 4: Cuadro Anexo de Ejecución Física (Unidad Ejecutora Local)")
-    st.markdown("Desglose operativo de actividades y misiones:")
+    st.subheader("Resumen Consolidado del Reporte ONAPRE N° 06")
+    
+    st.markdown(f"""
+    **Órgano:** {denominacion_organo}  
+    **Código Presupuestario:** `{codigo_presupuestario}` | **Período:** {mes_reporte} {ano_fiscal}
+    """)
+    st.write("---")
 
-    archivo_cua = st.file_uploader("📂 Cargar Excel (Cuadro Anexo)", type=["xlsx"], key="up_cua")
+    # Muestra de tablas consolidadas limpias (omitiendo filas de cero)
+    if st.session_state.obras:
+        st.markdown("##### 🏗️ Obras Ejecutadas (Formulario 0601)")
+        df_o = pd.DataFrame(st.session_state.obras)
+        df_o_clean = df_o[(df_o["Programado (Bs.)"] > 0) | (df_o["Ejecutado (Bs.)"] > 0)]
+        st.dataframe(df_o_clean, use_container_width=True)
 
-    if "df_cuadro_anexo" not in st.session_state:
-        st.session_state.df_cuadro_anexo = pd.DataFrame(columns=[
-            "Unidad", "N°", "Operación / Actividad"
-        ])
+    if st.session_state.financiero:
+        st.markdown("##### 💰 Ejecución Financiera (Formulario 0602)")
+        df_f = pd.DataFrame(st.session_state.financiero)
+        df_f_clean = df_f[(df_f["Causado"] > 0) | (df_f["Presupuesto Ley"] > 0)]
+        st.dataframe(df_f_clean, use_container_width=True)
 
-    if archivo_cua is not None:
-        try:
-            st.session_state.df_cuadro_anexo = pd.read_excel(archivo_cua).dropna(how="all")
-            st.success("✅ Cuadro anexo cargado con éxito.")
-        except Exception as e:
-            st.error(f"❌ Error al leer archivo: {e}")
+    if st.session_state.fisico:
+        st.markdown("##### 📈 Ejecución Física (Formulario 0603)")
+        df_ph = pd.DataFrame(st.session_state.fisico)
+        st.dataframe(df_ph, use_container_width=True)
 
-    st.session_state.df_cuadro_anexo = st.data_editor(
-        st.session_state.df_cuadro_anexo, 
-        num_rows="dynamic", 
-        use_container_width=True,
-        key="editor_cuadro_anexo"
+    # Generación y descarga de archivo Excel consolidado
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        if st.session_state.obras:
+            pd.DataFrame(st.session_state.obras).to_excel(writer, sheet_name='Formulario_0601', index=False)
+        if st.session_state.financiero:
+            pd.DataFrame(st.session_state.financiero).to_excel(writer, sheet_name='Formulario_0602', index=False)
+        if st.session_state.fisico:
+            pd.DataFrame(st.session_state.fisico).to_excel(writer, sheet_name='Formulario_0603', index=False)
+    
+    excel_data = output.getvalue()
+    
+    st.download_button(
+        label="📥 Descargar Reporte Consolidado (Excel)",
+        data=excel_data,
+        file_name=f"ONAPRE_Instructivo6_{codigo_presupuestario}_{mes_reporte}_{ano_fiscal}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-# ==========================================
-# PESTAÑA 5: RESUMEN Y EXPORTACIÓN UNIFICADA
-# ==========================================
-with tab5:
-    st.subheader("Resumen Consolidado e Impresión Completa")
-    st.markdown("---")
-
-    def limpiar_val(val):
-        try:
-            return float(val) if val is not None and not pd.isna(val) else 0.0
-        except:
-            return 0.0
-
-    c_org = st.session_state.get("cod_org", "008")
-    d_org = st.session_state.get("den_org", "MINISTERIO DEL PODER POPULAR PARA LA DEFENSA")
-    u_eje = st.session_state.get("uni_eje", "UNIDAD EJECUTORA")
-    m_rep = st.session_state.get("mes_rep", "JULIO")
-    f_rep = st.session_state.get("fec_rep", "31/07/2026")
-
-    html_firmas = """
-    <div style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 8px; text-align: center;">
-        <div>_________________________________<br><strong>PROGRAMADOR</strong></div>
-        <div>_________________________________<br><strong>ADMINISTRADOR</strong></div>
-        <div>_________________________________<br><strong>COMANDANTE</strong></div>
-    </div>
-    """
-
-    formatos_html_activos = []
-
-    # 1. FORMATO 1: FINANCIERA PROYECTOS
-    df_fin = st.session_state.get("df_financiera", pd.DataFrame())
-    filas_fin_html = ""
-    t_pm, t_pa, t_cm, t_cam, t_ca, t_caa = 0, 0, 0, 0, 0, 0
-    filas_validas_fin = 0
-
-    if not df_fin.empty:
-        for _, row in df_fin.iterrows():
-            denom = row.get("Denominación", "")
-            if not denom or str(denom).strip() in ["None", ""] or pd.isna(denom): continue
-            
-            pm = limpiar_val(row.get("Prog. Mensual", 0))
-            pa = limpiar_val(row.get("Prog. Acumulado", 0))
-            cm = limpiar_val(row.get("Ejec. Mensual Comprometido", 0))
-            cam = limpiar_val(row.get("Ejec. Mensual Causado", 0))
-            ca = limpiar_val(row.get("Ejec. Acumulado Comprometido", 0))
-            caa = limpiar_val(row.get("Ejec. Acumulado Causado", 0))
-            
-            if pm == 0 and pa == 0 and cm == 0 and cam == 0 and ca == 0 and caa == 0:
-                continue
-
-            filas_validas_fin += 1
-            v_comp = ((cm - pm) / pm * 100) if pm > 0 else -100.0
-            v_caus = ((cam - pm) / pm * 100) if pm > 0 else -100.0
-
-            t_pm += pm; t_pa += pa; t_cm += cm; t_cam += cam; t_ca += ca; t_caa += caa
-
-            filas_fin_html += f"""
-                <tr>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
-                    <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{pm:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{pa:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{cm:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{cam:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{ca:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{caa:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{v_comp:.0f}%</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{v_caus:.0f}%</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
-                </tr>
-            """
-
-    if filas_validas_fin > 0:
-        html_f1 = f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-                <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
-                <div><strong>FECHA:</strong> {f_rep}</div>
-            </div>
-            <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FINANCIERA MENSUAL DE LOS PROYECTOS / ACCIONES CENTRALIZADAS DEL ÓRGANO</h5>
-            <p style="text-align: center; font-size: 8px; margin-bottom: 8px;">(En Bolívares)</p>
-            
-            <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 8px;">
-                <thead style="background-color: #e2e8f0;">
-                    <tr>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">SIPES</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Ppto.</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px; width: 20%;">Denominación</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Programado</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Ejecutado Mensual</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Ejecutado Acumulado</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Variación Mes</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad Responsable</th>
-                    </tr>
-                    <tr>
-                        <th style="border: 1px solid #000; padding: 3px;">Mensual</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Acumulado</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Compromiso</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Causado</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Compromiso</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Causado</th>
-                        <th style="border: 1px solid #000; padding: 3px;">% Comp.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">% Caus.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filas_fin_html}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f1f5f9;">
-                        <td colspan="3" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL.....</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{t_pm:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{t_pa:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{t_cm:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{t_cam:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{t_ca:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{t_caa:,.2f}</td>
-                        <td colspan="3" style="border: 1px solid #000; padding: 4px;"></td>
-                    </tr>
-                </tfoot>
-            </table>
-            {html_firmas}
-        """
-        formatos_html_activos.append(html_f1)
-
-    # 2. FORMATO 2: FINANCIERA POR PARTIDAS DE EGRESOS
-    df_part = st.session_state.get("df_partidas", pd.DataFrame())
-    filas_part_html = ""
-    tot_cred, tot_pm_p, tot_cm_p, tot_cam_p, tot_pa_p, tot_ca_p, tot_caa_p = 0, 0, 0, 0, 0, 0, 0
-    filas_validas_part = 0
-
-    if not df_part.empty:
-        for _, row in df_part.iterrows():
-            den = row.get("Denominación", "")
-            if not den or str(den).strip() in ["None", ""] or pd.isna(den): continue
-
-            cred = limpiar_val(row.get("Crédito Anual", 0))
-            p_m = limpiar_val(row.get("Prog. Mes", 0))
-            c_m = limpiar_val(row.get("Comp. Mes", 0))
-            ca_m = limpiar_val(row.get("Caus. Mes", 0))
-            p_a = limpiar_val(row.get("Prog. Acum.", 0))
-            c_a = limpiar_val(row.get("Comp. Acum.", 0))
-            ca_a = limpiar_val(row.get("Caus. Acum.", 0))
-
-            if cred == 0 and p_m == 0 and c_m == 0 and ca_m == 0 and p_a == 0 and c_a == 0 and ca_a == 0:
-                continue
-
-            filas_validas_part += 1
-            var_abs = ca_a - p_a
-            var_rel = ((var_abs) / p_a * 100) if p_a > 0 else 0.0
-
-            tot_cred += cred; tot_pm_p += p_m; tot_cm_p += c_m; tot_cam_p += ca_m
-            tot_pa_p += p_a; tot_ca_p += c_a; tot_caa_p += ca_a
-
-            filas_part_html += f"""
-                <tr>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Partida", "")}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Genérica", "")}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Específica", "")}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Sub-Esp", "")}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px;">{row.get("Conc", "")}</td>
-                    <td style="text-align: left; border: 1px solid #000; padding: 3px; font-size: 7px; width: 20%;">{den}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{cred:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_m:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_m:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_m:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{p_a:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{c_a:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{ca_a:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_abs:,.2f}</td>
-                    <td style="border: 1px solid #000; padding: 3px; font-size: 7px; white-space: nowrap;">{var_rel:.1f}%</td>
-                </tr>
-            """
-
-    if filas_validas_part > 0:
-        tot_v_abs = tot_caa_p - tot_pa_p
-        tot_v_rel = (tot_v_abs / tot_pa_p * 100) if tot_pa_p > 0 else 0.0
-
-        html_f2 = f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-                <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
-                <div><strong>FECHA:</strong> {f_rep}</div>
-            </div>
-            <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FINANCIERA MENSUAL DE LOS PROYECTOS / ACCIONES CENTRALIZADAS DEL ÓRGANO, POR PARTIDAS DE EGRESOS</h5>
-            <p style="text-align: center; font-size: 8px; margin-bottom: 8px;">(En Bolívares)</p>
-            
-            <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 8px;">
-                <thead style="background-color: #e2e8f0;">
-                    <tr>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">PART.</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">GEN.</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">ESP.</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">SUB.</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">CONC.</th>
-                        <th rowspan="2" style="width: 22%; border: 1px solid #000; padding: 3px;">DENOMINACIÓN</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">CRÉDITO ANUAL</th>
-                        <th colspan="3" style="border: 1px solid #000; padding: 3px;">EJECUCIÓN MENSUAL</th>
-                        <th colspan="3" style="border: 1px solid #000; padding: 3px;">EJECUCIÓN ACUMULADA</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">VARIACIÓN ACUMULADA</th>
-                    </tr>
-                    <tr>
-                        <th style="border: 1px solid #000; padding: 3px;">PROG.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">COMP.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">CAUS.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">PROG.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">COMP.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">CAUS.</th>
-                        <th style="border: 1px solid #000; padding: 3px;">ABSOLUTA</th>
-                        <th style="border: 1px solid #000; padding: 3px;">%</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filas_part_html}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f1f5f9;">
-                        <td colspan="6" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL PRESUPUESTO:</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_cred:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_pm_p:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_cm_p:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_cam_p:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_pa_p:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_ca_p:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_caa_p:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_v_abs:,.2f}</td>
-                        <td style="border: 1px solid #000; padding: 4px; white-space: nowrap;">{tot_v_rel:.1f}%</td>
-                    </tr>
-                </tfoot>
-            </table>
-            {html_firmas}
-        """
-        formatos_html_activos.append(html_f2)
-
-    # 3. FORMATO 3: EJECUCIÓN FÍSICA PROYECTOS
-    df_fis = st.session_state.get("df_fisica_proyectos", pd.DataFrame())
-    filas_fis_html = ""
-    tot_f_pm, tot_f_pa, tot_f_em, tot_f_ea = 0, 0, 0, 0
-    filas_validas_fis = 0
-
-    if not df_fis.empty:
-        for _, row in df_fis.iterrows():
-            denom = row.get("Denominación", "")
-            if not denom or str(denom).strip() in ["None", ""] or pd.isna(denom): continue
-            
-            pm = limpiar_val(row.get("Meta Prog. Mensual", 0))
-            pa = limpiar_val(row.get("Meta Prog. Acumulado", 0))
-            em = limpiar_val(row.get("Meta Ejec. Mensual", 0))
-            ea = limpiar_val(row.get("Meta Ejec. Acumulado", 0))
-
-            if pm == 0 and pa == 0 and em == 0 and ea == 0:
-                continue
-
-            filas_validas_fis += 1
-            tot_f_pm += pm; tot_f_pa += pa; tot_f_em += em; tot_f_ea += ea
-
-            filas_fis_html += f"""
-                <tr>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("SIPES", "")}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Ppto.", "")}</td>
-                    <td style="text-align: left; border: 1px solid #000; padding: 4px;">{denom}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad de Medida", "")}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{pm:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{pa:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{em:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{ea:,.0f}</td>
-                    <td style="border: 1px solid #000; padding: 4px;">0</td>
-                    <td style="border: 1px solid #000; padding: 4px;">100%</td>
-                    <td style="border: 1px solid #000; padding: 4px;">0</td>
-                    <td style="border: 1px solid #000; padding: 4px;">100%</td>
-                    <td style="border: 1px solid #000; padding: 4px;">{row.get("Unidad Responsable", u_eje)}</td>
-                </tr>
-            """
-
-    if filas_validas_fis > 0:
-        html_f3 = f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-                <div><strong>CÓDIGO DEL ÓRGANO:</strong> {c_org}<br><strong>DENOMINACIÓN DEL ÓRGANO:</strong> {d_org}<br><strong>MES:</strong> {m_rep}</div>
-                <div><strong>FECHA:</strong> {f_rep}</div>
-            </div>
-            <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px;">EJECUCIÓN FÍSICA MENSUAL DE LOS PROYECTOS DEL ÓRGANO</h5>
-            
-            <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 8px;">
-                <thead style="background-color: #e2e8f0;">
-                    <tr>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">SIPES</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Ppto.</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px; width: 18%;">Denominación</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad de Medida</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Meta Programada</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Meta Ejecutada</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Variación Mes</th>
-                        <th colspan="2" style="border: 1px solid #000; padding: 3px;">Variación Acumulada</th>
-                        <th rowspan="2" style="border: 1px solid #000; padding: 3px;">Unidad Responsable</th>
-                    </tr>
-                    <tr>
-                        <th style="border: 1px solid #000; padding: 3px;">Mensual</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Acumulada</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Mensual</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Acumulada</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Absoluta</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Relativa %</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Absoluta</th>
-                        <th style="border: 1px solid #000; padding: 3px;">Relativa %</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filas_fis_html}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f1f5f9;">
-                        <td colspan="4" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTAL.....</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{tot_f_pm:,.0f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{tot_f_pa:,.0f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{tot_f_em:,.0f}</td>
-                        <td style="border: 1px solid #000; padding: 4px;">{tot_f_ea:,.0f}</td>
-                        <td colspan="5" style="border: 1px solid #000; padding: 4px;"></td>
-                    </tr>
-                </tfoot>
-            </table>
-            {html_firmas}
-        """
-        formatos_html_activos.append(html_f3)
-
-    # 4. FORMATO 4: CUADRO ANEXO FÍSICO
-    df_cuad = st.session_state.get("df_cuadro_anexo", pd.DataFrame())
-    filas_cuad_html = ""
-    tot_n = 0
-    filas_validas_cuad = 0
-
-    if not df_cuad.empty:
-        for _, row in df_cuad.iterrows():
-            op = row.get("Operación / Actividad", "")
-            if not op or str(op).strip() in ["None", ""] or pd.isna(op): continue
-            
-            filas_validas_cuad += 1
-            n = int(row.get("N°", 0)) if not pd.isna(row.get("N°", 0)) else 1
-            tot_n += n
-
-            filas_cuad_html += f"""
-                <tr>
-                    <td style="border: 1px solid #000; padding: 6px; text-align: center;">{n}</td>
-                    <td style="border: 1px solid #000; padding: 6px; text-align: left;">{op}</td>
-                </tr>
-            """
-
-    if filas_validas_cuad > 0:
-        html_f4 = f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; font-size: 9px;">
-                <div><strong>UNIDAD:</strong> {u_eje}</div>
-                <div><strong>MES:</strong> {m_rep}</div>
-            </div>
-            <h5 style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px;">CUADRO ANEXO DE LA EJECUCIÓN FÍSICA DE LA UNIDAD EJECUTORA LOCAL</h5>
-            
-            <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-                <thead style="background-color: #e2e8f0; text-align: center;">
-                    <tr>
-                        <th style="border: 1px solid #000; padding: 5px; width: 10%;">N°</th>
-                        <th style="border: 1px solid #000; padding: 5px; width: 90%;">OPERACIÓN / ACTIVIDAD</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filas_cuad_html}
-                </tbody>
-                <tfoot>
-                    <tr style="font-weight: bold; background-color: #f1f5f9;">
-                        <td style="border: 1px solid #000; padding: 5px; text-align: center;">{tot_n}</td>
-                        <td style="border: 1px solid #000; padding: 5px; text-align: left;">TOTAL</td>
-                    </tr>
-                </tfoot>
-            </table>
-            {html_firmas}
-        """
-        formatos_html_activos.append(html_f4)
-
-    # Construcción dinámica del consolidado
-    if formatos_html_activos:
-        cuerpo_html = "".join([f'<div class="hoja-formato">{f}</div>' for f in formatos_html_activos])
-    else:
-        cuerpo_html = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h3>No hay datos cargados en ningún formato.</h3><p>Cargue sus archivos Excel en las pestañas anteriores para generar la vista previa y el documento de impresión.</p></div>'
-
-    html_consolidado = f"""
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            @media print {{
-                @page {{
-                    size: letter landscape !important;
-                    margin: 0.5cm !important;
-                }}
-                body {{
-                    background: #fff !important;
-                    -webkit-print-color-adjust: exact;
-                }}
-                .hoja-formato {{
-                    page-break-before: always !important;
-                    page-break-after: always !important;
-                    break-before: page !important;
-                    break-after: page !important;
-                    display: block !important;
-                }}
-                .hoja-formato:first-of-type {{
-                    page-break-before: avoid !important;
-                    break-before: avoid !important;
-                }}
-            }}
-            .hoja-formato {{
-                border: 2px solid #000;
-                padding: 15px;
-                background: #fff;
-                font-family: Arial, sans-serif;
-                color: #000;
-                margin-bottom: 40px;
-                box-sizing: border-box;
-                width: 100%;
-            }}
-        </style>
-    </head>
-    <body>
-        {cuerpo_html}
-    </body>
-    </html>
-    """
-
-    if formatos_html_activos:
-        st.info("💡 **Método infalible para el PDF horizontal:** Haz clic en el botón de abajo para **Descargar el Documento Completo**, ábrelo en tu navegador y presiona **Ctrl + P** para guardar tus páginas independientes perfectamente adaptadas.")
-        st.download_button(
-            label="📥 Descargar / Guardar Documento Completo (HTML para Impresión)",
-            data=html_consolidado,
-            file_name="Instructivo_ONAPRE_06_Consolidado.html",
-            mime="text/html",
-            type="primary"
-        )
-    else:
-        st.warning("⚠️ No hay formatos con información cargada actualmente.")
-
-    st.markdown("### Vista Previa en Pantalla")
-    components.html(html_consolidado, height=900, scrolling=True)
